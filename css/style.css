@@ -1,0 +1,62 @@
+:root{
+  --accent: #b89af5;
+  --accent-dark: #a47ef0;
+  --accent-contrast: #6b3fd6;
+}
+
+html,body{
+  height:100%;
+}
+
+.body-reset, body{
+  background:#fff;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+.page-wrap{
+  width:100%;
+  max-width:100%;
+  margin:0;
+  background:#fff;
+  box-shadow:none;
+  border-radius:0;
+}
+
+.site-header{background:var(--accent);}
+.site-header .logo{
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size:1.4rem;
+  padding-left:6px;
+}
+
+.search-form .form-control{height:42px;padding-left:18px}
+.btn-accent{background:transparent;color:var(--accent-contrast)}
+.btn-accent:hover{background:rgba(0,0,0,0.04)}
+.user-avatar{width:34px;height:34px;border-radius:50%;font-weight:700}
+.user-avatar.text-accent{color:var(--accent)}
+.bg-accent{background:var(--accent) !important}
+.text-accent{color:var(--accent) !important}
+.content-blank{height:680px;background:#fff}
+
+.site-footer{
+  background:var(--accent);
+  border-top:1px solid rgba(0,0,0,0.06);
+  color:rgba(0,0,0,0.8);
+}
+
+.site-footer h6{
+  color:rgba(0,0,0,0.85);
+  font-size:0.95rem;
+}
+
+.site-footer .text-muted{color:rgba(0,0,0,0.5)!important}
+.site-footer .footer-col{min-width:140px}
+.site-footer .footer-col a{color:rgba(0,0,0,0.55)}
+.site-footer .footer-col a:hover{color:rgba(0,0,0,0.8);text-decoration:underline}
+.social-icons i{font-size:1.05rem}
+.site-footer .container{max-width:1200px}
+
+@media (max-width: 767px){
+  .search-form.w-50{width:100%}
+  .site-header .logo{font-size:1.1rem}
+}
