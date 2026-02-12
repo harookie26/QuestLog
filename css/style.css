@@ -319,3 +319,55 @@ a:focus {
   .threads-table .col-asked,
   .threads-table .col-answered { display: inline-block; min-width: 80px; }
 }
+
+/* Games page specific tweaks */
+.threads-table .table-head {
+  background: rgba(184,154,245,0.12);
+  color: rgb(40,18,88);
+  font-weight: 700;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.game-list {
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+.game-list .table-head {
+  background: rgba(59,12,89,0.06);
+  color: rgb(59,12,89);
+  font-weight: 700;
+}
+.game-list .table-body .game-row:nth-child(odd) {
+  background: rgba(184,154,245,0.12);
+}
+.game-list .table-body .game-row:nth-child(even) {
+  background: rgba(184,154,245,0.04);
+}
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: white;
+  font-weight: 800;
+  margin-right: 12px;
+}
+.thumb-sm {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-right: 12px;
+}
+.table-head + .table-body .thread-row,
+.table-head + .table-body .game-row {
+  border-bottom: 1px solid rgba(0,0,0,0.03);
+}
+
+@media (max-width: 575px) {
+  .rank-badge { width: 30px; height: 30px; font-size: 0.9rem; }
+  .thumb-sm { width: 40px; height: 40px; }
+}
