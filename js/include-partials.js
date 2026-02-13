@@ -1,4 +1,3 @@
-// Simple include loader: load partial HTML into elements with `data-include` attribute
 async function includePartials(){
   const nodes = document.querySelectorAll('[data-include]');
   await Promise.all(Array.from(nodes).map(async el => {
