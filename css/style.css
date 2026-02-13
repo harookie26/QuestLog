@@ -371,3 +371,104 @@ a:focus {
   .rank-badge { width: 30px; height: 30px; font-size: 0.9rem; }
   .thumb-sm { width: 40px; height: 40px; }
 }
+
+/* Platforms page specific styles */
+.platforms-page {
+  max-width: 1100px;
+  margin: 18px auto;
+  padding: 18px;
+}
+
+.platforms-hero {
+  background: rgba(184,154,245,0.16);
+  border: 1px solid rgba(59,12,89,0.18);
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.platforms-hero h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: rgb(40,18,88);
+  font-weight: 800;
+}
+
+.platforms-hero .subnote {
+  font-size: 0.95rem;
+  color: rgb(59,12,89);
+}
+
+.platforms-active {
+  background: rgba(184,154,245,0.12);
+  border: 1px solid rgba(59,12,89,0.12);
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 14px;
+}
+.platforms-active ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.platforms-active li { margin: 0; }
+.platforms-active a {
+  padding: 4px 8px;
+  display: inline-block;
+  background: rgba(255,255,255,0.35);
+  border-radius: 4px;
+  color: rgb(59,12,89);
+  font-weight: 600;
+}
+
+.platforms-section {
+  background: rgba(184,154,245,0.08);
+  border-top: 3px solid rgba(59,12,89,0.16);
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 2px;
+}
+.platforms-section h2 {
+  margin: 0 0 8px 0;
+  color: rgb(40,18,88); /* keep headers dark */
+  font-size: 1.05rem;
+  font-weight: 800;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  padding-bottom: 6px;
+}
+
+.platforms-list {
+  columns: 3;
+  -webkit-columns: 3;
+  column-gap: 28px;
+  padding-left: 18px;
+}
+.platforms-list li {
+  margin: 6px 0;
+  list-style: disc;
+  color: rgba(0,0,0,0.65);
+}
+/* Color the list links/items with accent, but not headers */
+.platforms-list a {
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+.platforms-list a:hover {
+  color: var(--accent-dark);
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .platforms-list { columns: 2; -webkit-columns: 2; }
+}
+@media (max-width: 600px) {
+  .platforms-hero { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .platforms-list { columns: 1; -webkit-columns: 1; padding-left: 12px; }
+  .platforms-active ul { gap: 8px; }
+}
