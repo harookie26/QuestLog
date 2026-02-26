@@ -20,7 +20,27 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: err.message });
     }
   }
+  if (req.method === 'PUT') {
+    try {
+      const updated = await Thread.findByIdAndUpdate(id, req.body, { new: true });
+      if (!updated) return res.status(404).send('Not found');
+      return res.status(200).json(updated);
+    } catch (err) {
+      console.error('PUT /api/threads/:id error', err);
+      return res.status(500).send('Failed to update thread');
+    }
+  }
 
-  res.setHeader('Allow', ['GET']);
+  if (req.method === 'DELETE') {
+    try {
+      await Thread.findByIdAndDelete(id);
+      return res.status(204).end();
+    } catch (err) {
+      console.error('DELETE /api/threads/:id error', err);
+      return res.status(500).send('Failed to delete thread');
+    }
+  }
+
+  res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }

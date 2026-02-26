@@ -55,8 +55,9 @@ export default async function handler(req, res) {
       if (mongoose.Types.ObjectId.isValid(id)) {
         payload.thread = new mongoose.Types.ObjectId(id);
       }
-      const created = await Message.create(payload);
-      console.log('Created message', { thread: payload.thread.toString ? payload.thread.toString() : payload.thread, id: created._id });
+      const createdDoc = await Message.create(payload);
+      console.log('Created message _id:', createdDoc._id);
+      const created = { _id: createdDoc._id.toString(), thread: createdDoc.thread ? createdDoc.thread.toString() : payload.thread, body: createdDoc.body, author: createdDoc.author || null, createdAt: createdDoc.createdAt };
       return res.status(201).json(created);
     } catch (err) {
       console.error('POST messages error', err);
