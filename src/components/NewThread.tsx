@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 
 export default function NewThread({ onClose }: { onClose: () => void }){
 	const [platform, setPlatform] = useState('')
+	const [game, setGame] = useState('')
 	const [title, setTitle] = useState('')
 	const [message, setMessage] = useState('')
 	const [error, setError] = useState<string | null>(null)
@@ -20,7 +21,7 @@ export default function NewThread({ onClose }: { onClose: () => void }){
 		const v = validateTitle(title)
 		if (v) { setError(v); return }
 		// For now just log the new thread; this is the place to wire persistence or lift state
-		console.log('Create thread', { platform, title, message })
+		console.log('Create thread', { title, game, platform, message })
 		onClose()
 	}
 
@@ -33,32 +34,43 @@ export default function NewThread({ onClose }: { onClose: () => void }){
 
 				<h2 className="text-3xl font-extrabold text-violet-900 mb-4">Create New Thread</h2>
 
-				<form onSubmit={handleSubmit}>
-					<div className="mb-4">
-						<label className="block text-lg text-violet-900 font-semibold mb-2">Select a platform</label>
-						<select value={platform} onChange={e => setPlatform(e.target.value)} className="px-3 py-1 border rounded bg-white text-violet-800 text-sm w-48">
-							<option value="">Choose a Platform</option>
-							<option>PS4</option>
-							<option>PC</option>
-							<option>XONE</option>
-							<option>Switch</option>
-						</select>
-					</div>
-
-					<div className="mb-4">
-						<label className="block text-lg text-violet-900 font-semibold mb-2">Create a topic title</label>
-						<input value={title} onChange={e => { setTitle(e.target.value); setError(null) }} className="w-full border px-2 py-1" />
-						<div className="text-xs text-violet-700 mt-1">Must be between 5 and 80 characters, cannot contain special characters or emoji or be in ALL CAPS.</div>
-						{error ? <div className="text-sm text-red-600 mt-1">{error}</div> : null}
-					</div>
-
-					<div className="mb-4">
-						<label className="block text-lg text-violet-900 font-semibold mb-2">Write your message</label>
-						<div className="border rounded">
-							<div className="bg-gray-100 p-2 text-sm text-violet-800 border-b"> <button type="button" className="px-2 font-bold">B</button> <button type="button" className="px-2">U</button> <button type="button" className="px-2">•</button> </div>
-							<textarea value={message} onChange={e => setMessage(e.target.value)} rows={10} className="w-full p-3" />
+					<form onSubmit={handleSubmit}>
+						<div className="mb-4">
+							<label className="block text-lg text-violet-900 font-semibold mb-2">Create a topic title</label>
+							<input value={title} onChange={e => { setTitle(e.target.value); setError(null) }} className="w-full border px-2 py-1" />
+							<div className="text-xs text-violet-700 mt-1">Must be between 5 and 80 characters, cannot contain special characters or emoji or be in ALL CAPS.</div>
+							{error ? <div className="text-sm text-red-600 mt-1">{error}</div> : null}
 						</div>
-					</div>
+
+						<div className="mb-4">
+							<label className="block text-lg text-violet-900 font-semibold mb-2">Select a game</label>
+							<select value={game} onChange={e => setGame(e.target.value)} className="px-3 py-1 border rounded bg-white text-violet-800 text-sm w-64">
+								<option value="">Choose a Game</option>
+								<option>Halo Infinite</option>
+								<option>Apex Legends</option>
+								<option>Fortnite</option>
+								<option>Elden Ring</option>
+							</select>
+						</div>
+
+						<div className="mb-4">
+							<label className="block text-lg text-violet-900 font-semibold mb-2">Select a platform</label>
+							<select value={platform} onChange={e => setPlatform(e.target.value)} className="px-3 py-1 border rounded bg-white text-violet-800 text-sm w-48">
+								<option value="">Choose a Platform</option>
+								<option>PS4</option>
+								<option>PC</option>
+								<option>XONE</option>
+								<option>Switch</option>
+							</select>
+						</div>
+
+						<div className="mb-4">
+							<label className="block text-lg text-violet-900 font-semibold mb-2">Write your message</label>
+							<div className="border rounded">
+								<div className="bg-gray-100 p-2 text-sm text-violet-800 border-b"> <button type="button" className="px-2 font-bold">B</button> <button type="button" className="px-2">U</button> <button type="button" className="px-2">•</button> </div>
+								<textarea value={message} onChange={e => setMessage(e.target.value)} rows={10} className="w-full p-3" />
+							</div>
+						</div>
 
 					<div className="flex items-center gap-3">
 						<button type="submit" className="bg-violet-700 text-white px-4 py-2 rounded">Create Thread</button>
