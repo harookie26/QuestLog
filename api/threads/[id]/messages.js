@@ -1,6 +1,6 @@
-import { connect } from '../../../../api/db.js';
-import Message from '../../../../api/models/Message.js';
-import Thread from '../../../../api/models/Thread.js';
+import { connect } from '../../db.js';
+import Message from '../../models/Message.js';
+import Thread from '../../models/Thread.js';
 import mongoose from 'mongoose';
 
 export default async function handler(req, res) {
