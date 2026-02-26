@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       const clean = name.trim();
       // try find existing
       let existing = await Game.findOne({ name: new RegExp('^' + clean + '$', 'i') });
-      if (existing) return res.status(200).json({ _id: existing._id.toString(), name: existing.name });
+      if (existing) return res.status(409).json({ _id: existing._id.toString(), name: existing.name, message: 'already exists' });
       const created = await Game.collection.insertOne({ name: clean, createdAt: new Date() });
       return res.status(201).json({ _id: created.insertedId.toString(), name: clean });
     } catch (err) {

@@ -84,6 +84,12 @@ export default function NewThread({ onClose, onCreate }: { onClose: () => void, 
 		? games.filter(g => g.toLowerCase().includes(gameQuery.toLowerCase()))
 		: games
 
+	const trimmedQuery = gameQuery.trim()
+	const duplicateMatch = trimmedQuery
+		? games.find(g => g.toLowerCase() === trimmedQuery.toLowerCase())
+		: undefined
+	const isDuplicate = !!duplicateMatch
+
 	const handleSelectGame = (name: string) => {
 		setGame(name)
 		setGameQuery(name)
@@ -156,9 +162,16 @@ export default function NewThread({ onClose, onCreate }: { onClose: () => void, 
 										)}
 										<div className="border-t p-2 bg-gray-50 flex items-center justify-between">
 											<div className="text-xs text-gray-700">Not listed?</div>
-											<button type="button" onClick={handleAddGame} disabled={addingGame} className="text-sm text-violet-900 px-2 py-1 rounded bg-white border">
-												{addingGame ? 'Adding…' : `Add game "${gameQuery}"`}
-											</button>
+											{isDuplicate ? (
+												<div className="flex items-center gap-2">
+													<div className="text-xs text-green-700">Already listed</div>
+													<button type="button" onClick={() => handleSelectGame(duplicateMatch!)} className="text-sm text-violet-900 px-2 py-1 rounded bg-white border">Select</button>
+												</div>
+											) : (
+												<button type="button" onClick={handleAddGame} disabled={addingGame || !trimmedQuery} className="text-sm text-violet-900 px-2 py-1 rounded bg-white border">
+													{addingGame ? 'Adding…' : `Add game "${gameQuery}"`}
+												</button>
+											)}
 										</div>
 									</div>
 								)}
