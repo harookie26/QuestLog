@@ -1,8 +1,13 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 export default function NewThread({ onClose, onCreate }: { onClose: () => void, onCreate?: (t: any) => void }){
 	const [platform, setPlatform] = useState('')
 	const [game, setGame] = useState('')
+	const [games, setGames] = useState<string[]>([])
+	const [gameQuery, setGameQuery] = useState('')
+	const [gamesLoading, setGamesLoading] = useState(false)
+	const [addingGame, setAddingGame] = useState(false)
+	const [showGames, setShowGames] = useState(false)
 	const [title, setTitle] = useState('')
 	const [message, setMessage] = useState('')
 	const [error, setError] = useState<string | null>(null)
@@ -45,6 +50,73 @@ export default function NewThread({ onClose, onCreate }: { onClose: () => void, 
 		}
 	}
 
+	useEffect(() => {
+		let mounted = true
+		const load = async () => {
+			setGamesLoading(true)
+			try {
+				const res = await fetch('/api/games')
+				if (res.ok) {
+					const list = await res.json()
+					if (mounted) setGames(list.map((g: any) => g.name))
+				}
+			} catch (err) {
+				console.error('Failed to load games', err)
+			} finally {
+				if (mounted) setGamesLoading(false)
+			}
+		}
+		load()
+		return () => { mounted = false }
+	}, [])
+
+	const wrapperRef = useRef<HTMLDivElement | null>(null)
+	useEffect(() => {
+		function onDoc(e: MouseEvent) {
+			if (!wrapperRef.current) return
+			if (!wrapperRef.current.contains(e.target as Node)) setShowGames(false)
+		}
+		document.addEventListener('click', onDoc)
+		return () => document.removeEventListener('click', onDoc)
+	}, [])
+
+	const filteredGames = gameQuery
+		? games.filter(g => g.toLowerCase().includes(gameQuery.toLowerCase()))
+		: games
+
+	const handleSelectGame = (name: string) => {
+		setGame(name)
+		setGameQuery(name)
+		setShowGames(false)
+	}
+
+	const handleAddGame = async () => {
+		const name = gameQuery.trim()
+		if (!name) return
+		setAddingGame(true)
+		try {
+			const res = await fetch('/api/games', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name })
+			})
+			if (!res.ok) throw new Error(await res.text())
+			const created = await res.json()
+			setGames(prev => {
+				if (prev.some(p => p.toLowerCase() === created.name.toLowerCase())) return prev
+				return [created.name, ...prev]
+			})
+			setGame(created.name)
+			setGameQuery(created.name)
+			setShowGames(false)
+		} catch (err) {
+			console.error('Add game failed', err)
+			setError('Failed to add game')
+		} finally {
+			setAddingGame(false)
+		}
+	}
+
 	return (
 		<div className="fixed inset-0 z-50 flex items-start justify-center p-6">
 			<div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -62,16 +134,36 @@ export default function NewThread({ onClose, onCreate }: { onClose: () => void, 
 							{error ? <div className="text-sm text-red-600 mt-1">{error}</div> : null}
 						</div>
 
-						<div className="mb-4">
+						<div className="mb-4" ref={wrapperRef}>
 							<label className="block text-lg text-violet-900 font-semibold mb-2">Select a game</label>
-							<select value={game} onChange={e => setGame(e.target.value)} className="px-3 py-1 border rounded bg-white text-violet-800 text-sm w-64">
-								<option value="">Choose a Game</option>
-								<option>Halo Infinite</option>
-								<option>Apex Legends</option>
-								<option>Fortnite</option>
-								<option>Elden Ring</option>
-								<option>Pokemon</option>
-							</select>
+							<input
+								value={gameQuery}
+								onChange={e => { setGameQuery(e.target.value); setShowGames(true); setError(null) }}
+								onFocus={() => setShowGames(true)}
+								placeholder="Search or add a game"
+								className="px-3 py-2 border rounded bg-white text-violet-800 text-sm w-64"
+							/>
+							<div className="relative">
+								{showGames && (
+									<div className="absolute z-40 mt-1 w-64 bg-white border rounded shadow max-h-56 overflow-auto">
+										{gamesLoading ? <div className="p-2 text-sm text-gray-600">Loading…</div> : null}
+										{!gamesLoading && filteredGames.length === 0 ? (
+											<div className="p-2 text-sm text-gray-700">No matches</div>
+										) : (
+											filteredGames.map(g => (
+												<button key={g} type="button" onClick={() => handleSelectGame(g)} className="w-full text-left px-3 py-2 hover:bg-violet-50">{g}</button>
+											))
+										)}
+										<div className="border-t p-2 bg-gray-50 flex items-center justify-between">
+											<div className="text-xs text-gray-700">Not listed?</div>
+											<button type="button" onClick={handleAddGame} disabled={addingGame} className="text-sm text-violet-900 px-2 py-1 rounded bg-white border">
+												{addingGame ? 'Adding…' : `Add game "${gameQuery}"`}
+											</button>
+										</div>
+									</div>
+								)}
+							</div>
+							{game ? <div className="text-xs text-violet-700 mt-1">Selected: {game}</div> : null}
 						</div>
 
 						<div className="mb-4">
