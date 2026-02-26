@@ -6,15 +6,16 @@ const cors = require('cors');
 const threadsRouter = require('./routes/threads');
 
 const app = express();
-// Basic request logging to help debug 4xx/5xx responses
-app.use((req, res, next) => {
-  console.log(new Date().toISOString(), req.method, req.url, 'body=', req.body ? '[present]' : '[empty]');
-  next();
-});
 
 // Relaxed CORS for local development; set specific origin in production
 app.use(cors({ origin: true, methods: ['GET','POST','PUT','DELETE','OPTIONS'], allowedHeaders: ['Content-Type','Authorization'] }));
 app.use(express.json());
+
+// Basic request logging (placed after body parsing so req.body is available)
+app.use((req, res, next) => {
+  console.log(new Date().toISOString(), req.method, req.url, 'body=', req.body ? '[present]' : '[empty]');
+  next();
+});
 
 app.use('/api/threads', threadsRouter);
 

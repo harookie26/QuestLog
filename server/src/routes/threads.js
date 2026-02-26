@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Thread = require('../models/Thread');
+const Message = require('../models/Message');
 
 router.get('/', async (req, res) => {
   try {
@@ -69,6 +70,39 @@ router.delete('/:id', async (req, res) => {
   } catch (err) {
     console.error('DELETE /api/threads/:id error', err);
     res.status(500).send('Failed to delete thread');
+  }
+});
+
+// Messages for a thread
+router.get('/:id/messages', async (req, res) => {
+  try {
+    const msgs = await Message.find({ thread: req.params.id }).sort('createdAt');
+    res.json(msgs);
+  } catch (err) {
+    console.error('GET /api/threads/:id/messages error', err);
+    res.status(500).send('Failed to fetch messages');
+  }
+});
+
+router.post('/:id/messages', async (req, res) => {
+  try {
+    console.log('POST /api/threads/:id/messages payload:', req.params.id, req.body)
+    if (!req.body || !req.body.body) return res.status(400).send('body is required');
+    const doc = {
+      thread: req.params.id,
+      body: req.body.body,
+      author: req.body.author || null,
+      createdAt: new Date()
+    };
+    // Use Mongoose model create so types are cast (thread -> ObjectId) and middleware/schema apply
+    const createdDoc = await Message.create(doc);
+    console.log('Created message _id:', createdDoc._id)
+    // return a plain object similar to previous behavior
+    const created = { _id: createdDoc._id.toString(), thread: createdDoc.thread.toString(), body: createdDoc.body, author: createdDoc.author || null, createdAt: createdDoc.createdAt };
+    res.status(201).json(created);
+  } catch (err) {
+    console.error('POST /api/threads/:id/messages error', err);
+    res.status(500).send('Failed to create message');
   }
 });
 
