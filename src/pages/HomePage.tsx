@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import NewThread from '../components/NewThread'
 
 type CardType = 'game' | 'topic'
 
-const CardItem = ({title, subtitle, img, type}:{title:string; subtitle:string; img?:string; type?:CardType}) => {
+const CardItem = ({title, subtitle, img, type, to}:{title:string; subtitle:string; img?:string; type?:CardType; to?:string}) => {
   const content = (
     <div className="flex items-start gap-4 p-3 bg-violet-100/80 border-b border-violet-200">
       <img src={img || 'https://via.placeholder.com/48'} alt="thumb" className="w-12 h-12 object-cover rounded-sm" />
@@ -16,7 +17,7 @@ const CardItem = ({title, subtitle, img, type}:{title:string; subtitle:string; i
 
   if (type === 'game') {
     return (
-      <Link to="/threads" className="block">
+      <Link to={to || '/threads'} className="block">
         {content}
       </Link>
     )
@@ -24,7 +25,7 @@ const CardItem = ({title, subtitle, img, type}:{title:string; subtitle:string; i
 
   if (type === 'topic') {
     return (
-      <Link to="/threads/inside" className="block">
+      <Link to={to || '/threads/inside'} className="block">
         {content}
       </Link>
     )
@@ -34,10 +35,31 @@ const CardItem = ({title, subtitle, img, type}:{title:string; subtitle:string; i
 }
 
 export default function HomePage(){
+  type Thread = { _id?: string; title: string; game?: string; platform?: string }
+  const [popularTopics, setPopularTopics] = useState<Thread[]>([])
+  const [showNew, setShowNew] = useState(false)
+
+  useEffect(() => {
+    // Fetch popular topics from backend. Adjust endpoint/query as needed.
+    fetch('/api/threads?popular=true')
+      .then((res) => {
+        if (!res.ok) throw new Error(res.statusText)
+        return res.json()
+      })
+      .then((data) => {
+        if (Array.isArray(data)) setPopularTopics(data)
+        else setPopularTopics([])
+      })
+      .catch(() => setPopularTopics([]))
+  }, [])
   return (
+    <>
     <div className="max-w-6xl mx-auto p-6">
       <section className="mb-6">
-        <h2 className="text-xl font-bold text-violet-900 mb-2">Your recent interactions</h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xl font-bold text-violet-900">Your recent interactions</h2>
+          <button onClick={() => setShowNew(true)} className="ml-4 px-3 py-1 bg-violet-700 text-white text-sm rounded">+ New Thread</button>
+        </div>
         <div className="border-t border-violet-300">
           <CardItem title="Monster Hunter: World (PS4)" subtitle="Does this game still have lots of players on PS4?" type="game" />
           <CardItem title="Metaphor: ReFantazio (PS5)" subtitle="Skills that 'move all allies to the front row' confusion" type="game" />
@@ -47,9 +69,22 @@ export default function HomePage(){
       <section className="mb-6">
         <h2 className="text-xl font-bold text-violet-900 mb-2">Popular Board Topics</h2>
         <div className="border-t border-violet-300">
-          <CardItem title="Is this better than Persona 3/4/5 in your opinion?" subtitle="Metaphor: ReFantazio (PS5)" type="topic" />
-          <CardItem title="General/character leak discussion v13" subtitle="Honkai: Star Rail (PC)" type="topic" />
-          <CardItem title="Did you pull for Zibai?" subtitle="Genshin Impact (PS4)" type="topic" />
+          {popularTopics.length === 0 ? (
+            // placeholder while loading or if none
+            [1,2,3].map((n) => (
+              <CardItem key={n} title={`Loading...`} subtitle={``} />
+            ))
+          ) : (
+            popularTopics.slice(0,5).map((t) => (
+              <CardItem
+                key={t._id || t.title}
+                title={t.title}
+                subtitle={t.game || t.platform || ''}
+                type="topic"
+                to={`/threads/inside/${t._id ?? ''}`}
+              />
+            ))
+          )}
         </div>
       </section>
 
@@ -84,5 +119,7 @@ export default function HomePage(){
         <div className="mt-3 text-sm"><a href="#" className="text-violet-800 hover:underline">More Games &gt;&gt;</a></div>
       </section>
     </div>
+    {showNew && <NewThread onClose={() => setShowNew(false)} />}
+    </>
   )
 }

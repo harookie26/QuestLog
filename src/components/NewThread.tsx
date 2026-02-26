@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 
-export default function NewThread({ onClose }: { onClose: () => void }){
+export default function NewThread({ onClose, onCreate }: { onClose: () => void, onCreate?: (t: any) => void }){
 	const [platform, setPlatform] = useState('')
 	const [game, setGame] = useState('')
 	const [title, setTitle] = useState('')
 	const [message, setMessage] = useState('')
 	const [error, setError] = useState<string | null>(null)
+	const [loading, setLoading] = useState(false)
 
 	const validateTitle = (t: string) => {
 		if (t.length < 5 || t.length > 80) return 'Must be between 5 and 80 characters.'
@@ -16,13 +17,32 @@ export default function NewThread({ onClose }: { onClose: () => void }){
 		return null
 	}
 
-	const handleSubmit = (e?: React.FormEvent) => {
+	const handleSubmit = async (e?: React.FormEvent) => {
 		e?.preventDefault()
 		const v = validateTitle(title)
 		if (v) { setError(v); return }
-		// For now just log the new thread; this is the place to wire persistence or lift state
-		console.log('Create thread', { title, game, platform, message })
-		onClose()
+		setLoading(true)
+		setError(null)
+		try {
+			const payload = { title: title.trim(), game, platform, body: message }
+			const res = await fetch('/api/threads', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(payload)
+			})
+			if (!res.ok) {
+				const text = await res.text()
+				throw new Error(text || `Server returned ${res.status}`)
+			}
+			const created = await res.json()
+			// let parent know (optional) and close
+			onCreate?.(created)
+			onClose()
+		} catch (err: any) {
+			setError(err?.message || 'Failed to create thread')
+		} finally {
+			setLoading(false)
+		}
 	}
 
 	return (
@@ -73,7 +93,9 @@ export default function NewThread({ onClose }: { onClose: () => void }){
 						</div>
 
 					<div className="flex items-center gap-3">
-						<button type="submit" className="bg-violet-700 text-white px-4 py-2 rounded">Create Thread</button>
+						<button type="submit" disabled={loading} className="bg-violet-700 text-white px-4 py-2 rounded disabled:opacity-50">
+							{loading ? 'Creating…' : 'Create Thread'}
+						</button>
 						<button type="button" onClick={onClose} className="text-violet-900 px-3 py-2">Cancel</button>
 					</div>
 				</form>

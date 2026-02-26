@@ -17,6 +17,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/threads" element={<MainThreadsPage />} />
           <Route path="/threads/inside" element={<InsideThreadsPage />} />
+          <Route path="/threads/inside/:id" element={<InsideThreadsPage />} />
           <Route path="/games" element={<MainGamesPage />} />
           <Route path="/platforms" element={<MainPlatformsPage />} />
         </Routes>
