@@ -14,7 +14,7 @@ export default async function handler(req, res) {
       const q = (req.query.q || '').toString();
       const filter = q ? { name: { $regex: q, $options: 'i' } } : {};
       const platforms = await Platform.find(filter).sort('name').limit(500);
-      return res.status(200).json(platforms.map(p => ({ _id: p._id.toString(), name: p.name })));
+      return res.status(200).json(platforms.map(p => ({ _id: p._id.toString(), name: p.name, generation: p.generation })));
     } catch (err) {
       console.error('GET /api/platforms error', err);
       return res.status(500).send('Failed to fetch platforms');

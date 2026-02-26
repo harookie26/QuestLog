@@ -1,56 +1,73 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+
+type PlatformDoc = { _id?: string; name: string; generation?: string }
 
 export default function MainPlatformsPage() {
-  const active = [
-    'PC','PlayStation 5','Nintendo Switch','Android','Xbox Series X','Nintendo Switch 2','Arcade Games','Board/Card','Evercade','Macintosh','Playdate','Meta Quest','iOS (iPhone/iPad)','Dedicated Console','Linux','Online/Browser','Roblox','Stadia'
-  ]
+  const [active, setActive] = useState<string[]>([])
+  const [generations, setGenerations] = useState<{ title: string; items: string[] }[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const generations: { title: string; items: string[] }[] = [
-    {
-      title: '2012 - 2019: Eight Generation',
-      items: ['3DS','Amazon Fire TV','Oculus Go','Ouya','PlayStation 4','PlayStation Vita','Wii U','Windows Mobile','Xbox One']
-    },
-    {
-      title: '2005 - 2015: Seventh Generation',
-      items: ['BlackBerry','DS','Game Wave','Mobile','PlayStation 3','PSP','Wii','Xbox 360']
-    },
-    {
-      title: '1998 - 2009: Sixth Generation',
-      items: ['Dreamcast','DVD Player','Game Boy Advance','GameCube','N-Gage','PlayStation 2','Game Boy Color','Neo Geo Pocket']
-    },
-    {
-      title: '1993 - 2001: Fifth Generation',
-      items: ['3DO','Amiga CD32','Bandai Pippin','Jaguar','Nintendo 64','Saturn','PlayStation']
-    },
-    {
-      title: '1987 - 1995: Fourth Generation',
-      items: ['Acorn Archimedes','Amiga','Genesis','Lynx','Mega Duck','OS/2','Sega 32X']
-    },
-    {
-      title: '1983 - 1990: Third Generation',
-      items: ['NES','Master System','Sega SG-1000','Colecovision','Atari 7800','Commodore 64']
-    },
-    {
-      title: '1976 - 1983: Second Generation',
-      items: ['Atari 2600','Intellivision','Vectrex','Magnavox Odyssey 2','ColecoVision']
-    },
-    {
-      title: '1972-1977: First Generation',
-      items: ['Coleco Telstar Arcade','Commodore PET','Odyssey','Pinball']
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch('/api/platforms')
+        if (!res.ok) throw new Error('Failed to fetch platforms')
+        const list: PlatformDoc[] = await res.json()
+
+        // group by generation (treat missing as 'Uncategorized')
+        const groups = new Map<string, string[]>()
+        for (const p of list) {
+          const gen = p.generation || 'Uncategorized'
+          if (!groups.has(gen)) groups.set(gen, [])
+          groups.get(gen)!.push(p.name)
+        }
+
+        // extract Active first
+        const activeList = groups.get('Active') || []
+        activeList.sort((a, b) => a.localeCompare(b))
+
+        // build generations array excluding Active
+        const gens: { title: string; items: string[] }[] = []
+        for (const [title, items] of groups.entries()) {
+          if (title === 'Active') continue
+          const sorted = Array.from(new Set(items)).sort((a, b) => a.localeCompare(b))
+          gens.push({ title, items: sorted })
+        }
+
+        // sort generations by title descending so newer ranges appear first
+        gens.sort((a, b) => (b.title || '').localeCompare(a.title || ''))
+
+        if (mounted) {
+          setActive(activeList)
+          setGenerations(gens)
+        }
+      } catch (err) {
+        console.error('Failed to load platforms', err)
+      } finally {
+        if (mounted) setLoading(false)
+      }
     }
-  ]
+    load()
+    return () => { mounted = false }
+  }, [])
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <h2 className="text-2xl font-bold text-violet-900 mb-4">Active Platforms</h2>
       <div className="bg-violet-100/60 border border-violet-300 p-4 rounded mb-6">
-        <ul className="flex flex-wrap gap-3 text-sm text-violet-800">
-          {active.map((a) => (
-            <li key={a} className="w-auto list-none">
-              <a href="#" className="px-2 py-1 hover:underline">{a}</a>
-            </li>
-          ))}
-        </ul>
+        {loading ? (
+          <div className="text-sm text-violet-800">Loading…</div>
+        ) : (
+          <ul className="flex flex-wrap gap-3 text-sm text-violet-800">
+            {active.length === 0 ? <li className="text-sm text-gray-600">No active platforms</li> : active.map((a) => (
+              <li key={a} className="w-auto list-none">
+                <a href="#" className="px-2 py-1 hover:underline">{a}</a>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {generations.map((g) => (
