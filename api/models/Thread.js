@@ -8,5 +8,5 @@ const ThreadSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-const Thread = mongoose.models.Thread || mongoose.model('Thread', ThreadSchema);
+const Thread = mongoose.models.Thread || mongoose.model('Thread', ThreadSchema, 'QuestLog');
 export default Thread;
