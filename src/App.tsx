@@ -7,7 +7,7 @@ import InsideThreadsPage from './pages/InsideThreadsPage'
 import MainGamesPage from './pages/MainGamesPage'
 import MainPlatformsPage from './pages/MainPlatformsPage'
 import { Routes, Route } from 'react-router-dom'
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/react"
 
 export default function App() {
   return (
@@ -24,6 +24,7 @@ export default function App() {
         </Routes>
       </main>
       <Footer />
+      <Analytics />
     </div>
   )
 }
