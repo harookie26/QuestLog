@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from 'react'
 
 export default function NewThread({ onClose, onCreate }: { onClose: () => void, onCreate?: (t: any) => void }){
 	const [platform, setPlatform] = useState('')
+	const [platforms, setPlatforms] = useState<string[]>([])
+	const [platformQuery, setPlatformQuery] = useState('')
+	const [platformsLoading, setPlatformsLoading] = useState(false)
+	const [showPlatforms, setShowPlatforms] = useState(false)
 	const [game, setGame] = useState('')
 	const [games, setGames] = useState<string[]>([])
 	const [gameQuery, setGameQuery] = useState('')
@@ -70,6 +74,26 @@ export default function NewThread({ onClose, onCreate }: { onClose: () => void, 
 		return () => { mounted = false }
 	}, [])
 
+	useEffect(() => {
+		let mounted = true
+		const load = async () => {
+			setPlatformsLoading(true)
+			try {
+				const res = await fetch('/api/platforms')
+				if (res.ok) {
+					const list = await res.json()
+					if (mounted) setPlatforms(list.map((p: any) => p.name))
+				}
+			} catch (err) {
+				console.error('Failed to load platforms', err)
+			} finally {
+				if (mounted) setPlatformsLoading(false)
+			}
+		}
+		load()
+		return () => { mounted = false }
+	}, [])
+
 	const wrapperRef = useRef<HTMLDivElement | null>(null)
 	useEffect(() => {
 		function onDoc(e: MouseEvent) {
@@ -80,9 +104,23 @@ export default function NewThread({ onClose, onCreate }: { onClose: () => void, 
 		return () => document.removeEventListener('click', onDoc)
 	}, [])
 
+	const platformRef = useRef<HTMLDivElement | null>(null)
+	useEffect(() => {
+		function onDoc(e: MouseEvent) {
+			if (!platformRef.current) return
+			if (!platformRef.current.contains(e.target as Node)) setShowPlatforms(false)
+		}
+		document.addEventListener('click', onDoc)
+		return () => document.removeEventListener('click', onDoc)
+	}, [])
+
 	const filteredGames = gameQuery
 		? games.filter(g => g.toLowerCase().includes(gameQuery.toLowerCase()))
 		: games
+
+	const filteredPlatforms = platformQuery
+		? platforms.filter(p => p.toLowerCase().includes(platformQuery.toLowerCase()))
+		: platforms
 
 	const trimmedQuery = gameQuery.trim()
 	const duplicateMatch = trimmedQuery
@@ -94,6 +132,12 @@ export default function NewThread({ onClose, onCreate }: { onClose: () => void, 
 		setGame(name)
 		setGameQuery(name)
 		setShowGames(false)
+	}
+
+	const handleSelectPlatform = (name: string) => {
+		setPlatform(name)
+		setPlatformQuery(name)
+		setShowPlatforms(false)
 	}
 
 	const handleAddGame = async () => {
@@ -179,15 +223,30 @@ export default function NewThread({ onClose, onCreate }: { onClose: () => void, 
 							{game ? <div className="text-xs text-violet-700 mt-1">Selected: {game}</div> : null}
 						</div>
 
-						<div className="mb-4">
+						<div className="mb-4" ref={platformRef}>
 							<label className="block text-lg text-violet-900 font-semibold mb-2">Select a platform</label>
-							<select value={platform} onChange={e => setPlatform(e.target.value)} className="px-3 py-1 border rounded bg-white text-violet-800 text-sm w-48">
-								<option value="">Choose a Platform</option>
-								<option>PS4</option>
-								<option>PC</option>
-								<option>XONE</option>
-								<option>Switch</option>
-							</select>
+							<input
+								value={platformQuery}
+								onChange={e => { setPlatformQuery(e.target.value); setShowPlatforms(true); setError(null) }}
+								onFocus={() => setShowPlatforms(true)}
+								placeholder="Search platform"
+								className="px-3 py-2 border rounded bg-white text-violet-800 text-sm w-48"
+							/>
+							<div className="relative">
+								{showPlatforms && (
+									<div className="absolute z-40 mt-1 w-48 bg-white border rounded shadow max-h-56 overflow-auto">
+										{platformsLoading ? <div className="p-2 text-sm text-gray-600">Loading…</div> : null}
+										{!platformsLoading && filteredPlatforms.length === 0 ? (
+											<div className="p-2 text-sm text-gray-700">No matches</div>
+										) : (
+											filteredPlatforms.map(p => (
+												<button key={p} type="button" onClick={() => handleSelectPlatform(p)} className="w-full text-left px-3 py-2 hover:bg-violet-50">{p}</button>
+											))
+										)}
+									</div>
+								)}
+							</div>
+							{platform ? <div className="text-xs text-violet-700 mt-1">Selected: {platform}</div> : null}
 						</div>
 
 						<div className="mb-4">
