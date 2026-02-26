@@ -2,7 +2,12 @@ import { connect } from '../../api/db.js';
 import Thread from '../../api/models/Thread.js';
 
 export default async function handler(req, res) {
-  await connect();
+  try {
+    await connect();
+  } catch (err) {
+    console.error('DB connect error', err);
+    return res.status(500).send('Database connection error');
+  }
 
   if (req.method === 'GET') {
     try {
