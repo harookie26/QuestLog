@@ -8,6 +8,7 @@ import MainGamesPage from './pages/MainGamesPage'
 import MainPlatformsPage from './pages/MainPlatformsPage'
 import { Routes, Route } from 'react-router-dom'
 import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
       </main>
       <Footer />
       <Analytics />
+      <SpeedInsights />
     </div>
   )
 }
