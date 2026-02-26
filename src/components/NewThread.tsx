@@ -70,6 +70,7 @@ export default function NewThread({ onClose, onCreate }: { onClose: () => void, 
 								<option>Apex Legends</option>
 								<option>Fortnite</option>
 								<option>Elden Ring</option>
+								<option>Pokemon</option>
 							</select>
 						</div>
 
