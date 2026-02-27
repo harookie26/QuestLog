@@ -35,6 +35,23 @@ export default function InsideThreadsPage(){
     return () => { mounted = false }
   }, [id])
 
+  // record that the user opened this thread (for recent interactions)
+  useEffect(() => {
+    if (!id) return
+    try {
+      const raw = localStorage.getItem('recentThreadIds')
+      const arr = Array.isArray(raw ? JSON.parse(raw) : null) ? JSON.parse(raw as string) : []
+      // remove existing occurrence
+      const filtered = arr.filter((x: string) => x !== id)
+      filtered.unshift(id)
+      // keep reasonable history length
+      const truncated = filtered.slice(0, 20)
+      localStorage.setItem('recentThreadIds', JSON.stringify(truncated))
+    } catch (err) {
+      // ignore localStorage errors
+    }
+  }, [id])
+
   const postReply = async () => {
     if (!id) return
     if (!reply.trim()) return
