@@ -6,8 +6,23 @@ export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
+  // helper used to decide mobile vs desktop behavior
+  const isMobile = () => (typeof window !== 'undefined' ? window.innerWidth < 768 : false)
+  const isOpenRef = React.useRef(isOpen)
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 0)
+    isOpenRef.current = isOpen
+  }, [isOpen])
+
+  useEffect(() => {
+    const onScroll = () => {
+      const sc = window.scrollY > 0
+      setScrolled(sc)
+      // if mobile overlay is open and the user scrolls, close it
+      if (isOpenRef.current && isMobile()) {
+        setIsOpen(false)
+      }
+    }
+    // initialize scrolled state once on mount
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
@@ -33,11 +48,10 @@ export default function Header() {
   }, [scrolled])
   return (
     <>
-      <header className={`${scrolled ? 'fixed top-0 left-0 right-0 z-50 bg-violet-300/95 shadow-md backdrop-blur-sm' : 'bg-violet-300'}`}>
+      <header className={`${scrolled ? 'fixed top-0 left-0 right-0 z-50 bg-violet-300/95 shadow-md backdrop-blur-sm' : 'relative z-50 bg-violet-300'}`}>
         <div className={`max-w-6xl mx-auto px-4 relative ${scrolled ? 'md:pl-56' : ''}`}>
           <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-6">
-            <Link to="/" className="text-2xl font-semibold text-violet-900">QuestLog</Link>
             <button
               onClick={() => setIsOpen(!isOpen)}
               aria-expanded={isOpen}
@@ -51,8 +65,11 @@ export default function Header() {
                 <span className="block w-6 h-0.5 bg-violet-900 rounded" />
               </div>
             </button>
+            <Link to="/" className="text-2xl font-semibold text-violet-900">QuestLog</Link>
                {/* Inline nav for wide screens when not scrolled (will be hidden when scrolled) */}
-               <div className={`${scrolled ? 'hidden' : (isOpen ? 'block md:block' : 'hidden md:block')} absolute md:static left-0 right-0 top-full md:top-auto bg-white md:bg-transparent shadow-md md:shadow-none z-50` }>
+               {/* header nav: hide when scrolled (desktop) or when mobile overlay is open */}
+               {/* Inline header nav: only show on md+ and only when not scrolled and not overlay-open */}
+               <div className={`${(scrolled || isOpen) ? 'hidden' : 'hidden md:block'} absolute md:static left-0 right-0 top-full md:top-auto bg-white md:bg-transparent shadow-md md:shadow-none z-50` }>
                  <div className="max-w-6xl mx-auto px-4">
                    <nav className="flex md:flex-row flex-col gap-2 md:gap-6 text-sm text-violet-900 md:items-center py-3 md:py-0">
                      <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center" to="/">
@@ -96,8 +113,8 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Sidebar that appears when the user scrolls */}
-      <aside className={`fixed left-0 top-0 h-full w-56 bg-white shadow-lg z-40 transform transition-transform duration-300 ${scrolled ? 'translate-x-0' : '-translate-x-full'}`} aria-hidden={!scrolled}>
+      {/* Desktop sidebar that appears on scroll */}
+      <aside className={`hidden md:block fixed left-0 top-0 h-full w-56 bg-white shadow-lg z-30 transform transition-transform duration-200 ease-out ${scrolled ? 'translate-x-0' : '-translate-x-full'}`} aria-hidden={!scrolled}>
         <div className="p-6 pt-20">
           <nav className="flex flex-col gap-4 text-violet-900">
             <Link className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="/">
@@ -115,6 +132,29 @@ export default function Header() {
           </nav>
         </div>
       </aside>
+
+      {/* Mobile overlay sidebar: toggled by sandwich button */}
+      <div className={`md:hidden fixed inset-0 z-30 ${isOpen ? '' : 'pointer-events-none'}`} aria-hidden={!isOpen}>
+        <div className={`absolute inset-0 bg-black transition-opacity duration-200 ${isOpen ? 'opacity-40' : 'opacity-0'}`} onClick={() => setIsOpen(false)} />
+        <div className={`absolute left-0 top-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-200 ease-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="p-6 pt-20">
+            <nav className="flex flex-col gap-4 text-violet-900">
+              <Link onClick={() => setIsOpen(false)} className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="/">
+                <Home className="w-5 h-5 mr-3" /> HOME
+              </Link>
+              <Link onClick={() => setIsOpen(false)} className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="#">
+                <List className="w-5 h-5 mr-3" /> BOARDS
+              </Link>
+              <Link onClick={() => setIsOpen(false)} className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="/games">
+                <Gamepad className="w-5 h-5 mr-3" /> GAMES
+              </Link>
+              <Link onClick={() => setIsOpen(false)} className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="/platforms">
+                <Server className="w-5 h-5 mr-3" /> PLATFORM
+              </Link>
+            </nav>
+          </div>
+        </div>
+      </div>
     </>
   )
 }
