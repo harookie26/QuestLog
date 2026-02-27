@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Home, List, Gamepad, Server } from 'lucide-react'
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
@@ -26,10 +27,22 @@ export default function Header() {
             <div className={`${isOpen ? 'block' : 'hidden'} md:block absolute md:static left-0 right-0 top-full md:top-auto bg-white md:bg-transparent shadow-md md:shadow-none z-50` }>
               <div className="max-w-6xl mx-auto px-4">
                 <nav className="flex md:flex-row flex-col gap-2 md:gap-6 text-sm text-violet-900 md:items-center py-3 md:py-0">
-                  <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50" to="/">HOME</Link>
-                  <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50" to="#">BOARDS</Link>
-                  <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50" to="/games">GAMES</Link>
-                  <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50" to="/platforms">PLATFORM</Link>
+                  <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center" to="/">
+                    <Home className="w-4 h-4 mr-2 text-violet-900" aria-hidden="true" />
+                    HOME
+                  </Link>
+                  <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center" to="#">
+                    <List className="w-4 h-4 mr-2 text-violet-900" aria-hidden="true" />
+                    BOARDS
+                  </Link>
+                  <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center" to="/games">
+                    <Gamepad className="w-4 h-4 mr-2 text-violet-900" aria-hidden="true" />
+                    GAMES
+                  </Link>
+                  <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center" to="/platforms">
+                    <Server className="w-4 h-4 mr-2 text-violet-900" aria-hidden="true" />
+                    PLATFORM
+                  </Link>
                 </nav>
               </div>
             </div>
