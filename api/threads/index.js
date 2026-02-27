@@ -11,6 +11,13 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
+      const q = (req.query.q || '').toString();
+      if (q) {
+        const filter = { $or: [ { title: { $regex: q, $options: 'i' } }, { game: { $regex: q, $options: 'i' } } ] };
+        const threads = await Thread.find(filter).sort('-createdAt').limit(200);
+        return res.status(200).json(threads.map(t => ({ _id: t._id.toString(), title: t.title, game: t.game })));
+      }
+
       const threads = await Thread.find().sort('-createdAt');
       return res.status(200).json(threads);
     } catch (err) {

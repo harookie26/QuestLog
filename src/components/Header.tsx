@@ -1,14 +1,22 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect, useRef } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Home, List, Gamepad, Server } from 'lucide-react'
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  type ThreadResult = { _id: string; title: string; game?: string }
+  type GameResult = { _id: string; name: string }
+  const [searchResults, setSearchResults] = useState<{ threads: ThreadResult[]; games: GameResult[] }>({ threads: [], games: [] })
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
+  const navigate = useNavigate()
 
   // helper used to decide mobile vs desktop behavior
   const isMobile = () => (typeof window !== 'undefined' ? window.innerWidth < 768 : false)
   const isOpenRef = React.useRef(isOpen)
+  const searchTimerRef = useRef<number | null>(null)
   useEffect(() => {
     isOpenRef.current = isOpen
   }, [isOpen])
@@ -46,6 +54,41 @@ export default function Header() {
       document.body.style.marginLeft = ''
     }
   }, [scrolled])
+
+  // debounced search: query games and threads
+  useEffect(() => {
+    const q = (searchQuery || '').trim()
+    if (!q) {
+      setSearchResults({ threads: [], games: [] })
+      setSearchLoading(false)
+      return
+    }
+    setSearchLoading(true)
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current)
+    }
+    searchTimerRef.current = window.setTimeout(async () => {
+      try {
+        const enc = encodeURIComponent(q)
+        const [gRes, tRes] = await Promise.all([
+          fetch(`/api/games?q=${enc}`),
+          fetch(`/api/threads?q=${enc}`)
+        ])
+        const games = gRes.ok ? await gRes.json() : []
+        const threads = tRes.ok ? await tRes.json() : []
+        setSearchResults({ games, threads })
+      } catch (err) {
+        console.error('Search error', err)
+        setSearchResults({ games: [], threads: [] })
+      } finally {
+        setSearchLoading(false)
+      }
+    }, 300)
+
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    }
+  }, [searchQuery])
   return (
     <>
       <header className={`${scrolled ? 'fixed top-0 left-0 right-0 z-50 bg-violet-300/95 shadow-md backdrop-blur-sm' : 'relative z-50 bg-violet-300'}`}>
@@ -98,10 +141,43 @@ export default function Header() {
                 <label className="relative block">
                   <input
                     className="w-full rounded-full border border-violet-400 bg-white/90 py-2 pl-4 pr-10 text-sm placeholder-violet-600 shadow-sm"
-                    placeholder="Search Game Titles"
+                    placeholder="Search threads or games"
+                    value={searchQuery}
+                    onFocus={() => setShowSearch(true)}
+                    onChange={e => {
+                      const v = e.target.value
+                      setSearchQuery(v)
+                    }}
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-violet-700">🔍</span>
                 </label>
+                {/* Search dropdown */}
+                {showSearch && (searchResults.threads.length > 0 || searchResults.games.length > 0 || searchLoading) && (
+                  <div className="absolute left-0 right-0 mt-2 bg-white border rounded shadow max-h-72 overflow-auto z-40">
+                    <div className="p-2 text-sm text-gray-600">{searchLoading ? 'Searching…' : 'Results'}</div>
+                    {searchResults.threads.length > 0 && (
+                      <div className="border-t">
+                        <div className="p-2 text-xs text-violet-700 font-semibold">Threads</div>
+                        {searchResults.threads.map(t => (
+                          <button key={t._id} onClick={() => { setShowSearch(false); setSearchQuery(''); setIsOpen(false); navigate(`/threads/inside/${t._id}`) }} className="w-full text-left px-3 py-2 hover:bg-violet-50">
+                            <div className="font-medium text-violet-900">{t.title}</div>
+                            {t.game ? <div className="text-xs text-violet-700">{t.game}</div> : null}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {searchResults.games.length > 0 && (
+                      <div className="border-t">
+                        <div className="p-2 text-xs text-violet-700 font-semibold">Games</div>
+                        {searchResults.games.map(g => (
+                          <button key={g._id} onClick={() => { setShowSearch(false); setSearchQuery(''); setIsOpen(false); navigate(`/games?q=${encodeURIComponent(g.name)}`) }} className="w-full text-left px-3 py-2 hover:bg-violet-50">
+                            <div className="font-medium text-violet-900">{g.name}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
