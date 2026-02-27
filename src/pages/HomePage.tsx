@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import NewThread from '../components/NewThread'
 
 type CardType = 'game' | 'topic'
@@ -37,6 +37,7 @@ const CardItem = ({title, subtitle, img, type, to}:{title:string; subtitle:strin
 export default function HomePage(){
   type Thread = { _id?: string; title: string; game?: string; platform?: string }
   const [popularTopics, setPopularTopics] = useState<Thread[]>([])
+  const [recentThreads, setRecentThreads] = useState<Thread[] | null>(null)
   const [showNew, setShowNew] = useState(false)
 
   useEffect(() => {
@@ -52,6 +53,48 @@ export default function HomePage(){
       })
       .catch(() => setPopularTopics([]))
   }, [])
+
+  const location = useLocation()
+
+  useEffect(() => {
+    // Fetch the 2 most recent threads the user opened; if none,
+    // fall back to fetching the latest threads. Always limit to 2.
+    const fetchRecent = async () => {
+      try {
+        const res = await fetch('/api/threads?recent=true')
+        if (!res.ok) throw new Error(res.statusText)
+        const data = await res.json()
+        if (Array.isArray(data) && data.length > 0) {
+          setRecentThreads(data.slice(0, 2))
+          return
+        }
+
+        // fallback to latest
+        const r2 = await fetch('/api/threads')
+        if (!r2.ok) throw new Error(r2.statusText)
+        const latest = await r2.json()
+        if (Array.isArray(latest)) setRecentThreads(latest.slice(0, 2))
+        else setRecentThreads([])
+      } catch (err) {
+        // final fallback
+        try {
+          const r = await fetch('/api/threads')
+          if (!r.ok) throw new Error(r.statusText)
+          const latest = await r.json()
+          if (Array.isArray(latest)) setRecentThreads(latest.slice(0, 2))
+          else setRecentThreads([])
+        } catch {
+          setRecentThreads([])
+        }
+      }
+    }
+
+    // Only refetch when the location changes to the home path so that
+    // returning to the home page updates recent interactions.
+    if (location.pathname === '/') {
+      fetchRecent()
+    }
+  }, [location.pathname])
   return (
     <>
     <div className="max-w-6xl mx-auto p-6">
@@ -61,13 +104,30 @@ export default function HomePage(){
           <button onClick={() => setShowNew(true)} className="ml-4 px-3 py-1 bg-violet-700 text-white text-sm rounded">+ New Thread</button>
         </div>
         <div className="border-t border-violet-300">
-          <CardItem title="Monster Hunter: World (PS4)" subtitle="Does this game still have lots of players on PS4?" type="game" />
-          <CardItem title="Metaphor: ReFantazio (PS5)" subtitle="Skills that 'move all allies to the front row' confusion" type="game" />
+          {recentThreads === null ? (
+            [1, 2].map((n) => (
+              <CardItem key={n} title={`Loading...`} subtitle={``} />
+            ))
+          ) : recentThreads.length === 0 ? (
+            [1, 2].map((n) => (
+              <CardItem key={n} title={`No threads`} subtitle={``} />
+            ))
+          ) : (
+            recentThreads.map((t) => (
+              <CardItem
+                key={t._id || t.title}
+                title={t.title}
+                subtitle={t.game || t.platform || ''}
+                type="topic"
+                to={`/threads/inside/${t._id ?? ''}`}
+              />
+            ))
+          )}
         </div>
       </section>
 
       <section className="mb-6">
-        <h2 className="text-xl font-bold text-violet-900 mb-2">Popular Board Topics</h2>
+        <h2 className="text-xl font-bold text-violet-900 mb-2">Recent Threads</h2>
         <div className="border-t border-violet-300">
           {popularTopics.length === 0 ? (
             // placeholder while loading or if none
@@ -89,7 +149,7 @@ export default function HomePage(){
       </section>
 
       <section className="mb-6">
-        <h2 className="text-xl font-bold text-violet-900 mb-2">Popular Questions</h2>
+        <h2 className="text-xl font-bold text-violet-900 mb-2">Popular Threads</h2>
         <div className="flex gap-4">
           <div className="w-2/3">
             <div className="border-t border-violet-300">
