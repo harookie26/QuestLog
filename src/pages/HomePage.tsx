@@ -92,6 +92,36 @@ export default function HomePage(){
       fetchRecentFromLocal()
     }
   }, [location.pathname])
+
+  const [topThreads, setTopThreads] = useState<Thread[] | null>(null)
+
+  useEffect(() => {
+    const fetchTop = async () => {
+      try {
+        const res = await fetch('/api/threads')
+        if (!res.ok) throw new Error(res.statusText)
+        const all = await res.json()
+        if (!Array.isArray(all)) {
+          setTopThreads([])
+          return
+        }
+
+        const withCount = all.map((t: any) => ({
+          ...t,
+          __msgCount: t.messageCount ?? (Array.isArray(t.messages) ? t.messages.length : 0),
+        }))
+
+        withCount.sort((a: any, b: any) => (b.__msgCount || 0) - (a.__msgCount || 0))
+
+        const top = withCount.slice(0, 3).map((t: any) => ({ _id: t._id, title: t.title, game: t.game, platform: t.platform })) as Thread[]
+        setTopThreads(top)
+      } catch (err) {
+        setTopThreads([])
+      }
+    }
+
+    fetchTop()
+  }, [])
   return (
     <>
     <div className="max-w-6xl mx-auto p-6">
@@ -150,9 +180,25 @@ export default function HomePage(){
         <div className="flex gap-4">
           <div className="w-2/3">
             <div className="border-t border-violet-300">
-              <CardItem title="Where are the Tri beam modifications?" subtitle="Fallout: New Vegas (X360)" type="topic" />
-              <CardItem title="Why are my mods gone?" subtitle="Fallout 4 (PS4)" type="topic" />
-              <CardItem title="Are there any negative effects?" subtitle="The Elder Scrolls V: Skyrim (X360)" type="topic" />
+              {topThreads === null ? (
+                [1,2,3].map((n) => (
+                  <CardItem key={n} title={`Loading...`} subtitle={``} />
+                ))
+              ) : topThreads.length === 0 ? (
+                [1,2,3].map((n) => (
+                  <CardItem key={n} title={`No threads`} subtitle={``} />
+                ))
+              ) : (
+                topThreads.map((t) => (
+                  <CardItem
+                    key={t._id || t.title}
+                    title={t.title}
+                    subtitle={t.game || t.platform || ''}
+                    type="topic"
+                    to={`/threads/inside/${t._id ?? ''}`}
+                  />
+                ))
+              )}
             </div>
           </div>
           <aside className="w-1/3">
