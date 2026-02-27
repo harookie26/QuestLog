@@ -25,12 +25,10 @@ export default function Header() {
     const onScroll = () => {
       const sc = window.scrollY > 0
       setScrolled(sc)
-      // if mobile overlay is open and the user scrolls, close it
       if (isOpenRef.current && isMobile()) {
         setIsOpen(false)
       }
     }
-    // initialize scrolled state once on mount
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
@@ -38,7 +36,7 @@ export default function Header() {
 
   // When sidebar is visible, shift the page content by adding left margin to body (desktop only)
   useEffect(() => {
-    const sidebarWidth = '14rem' // matches w-56
+    const sidebarWidth = '14rem'
     const shouldShift = scrolled && window.innerWidth >= 768
     if (shouldShift) {
       const prev = document.body.style.marginLeft
@@ -55,7 +53,7 @@ export default function Header() {
     }
   }, [scrolled])
 
-  // debounced search: query games and threads
+  // debounced search
   useEffect(() => {
     const q = (searchQuery || '').trim()
     if (!q) {
@@ -189,8 +187,7 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Desktop sidebar that appears on scroll */}
-      <aside className={`hidden md:block fixed left-0 top-0 h-full w-56 bg-white shadow-lg z-30 transform transition-transform duration-200 ease-out ${scrolled ? 'translate-x-0' : '-translate-x-full'}`} aria-hidden={!scrolled}>
+        <aside className={`hidden md:block fixed left-0 top-0 h-full w-56 bg-white shadow-lg z-30 transform transition-transform duration-200 ease-out ${scrolled ? 'translate-x-0' : '-translate-x-full'}`} aria-hidden={!scrolled}>
         <div className="p-6 pt-20">
           <nav className="flex flex-col gap-4 text-violet-900">
             <Link className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="/">
@@ -209,7 +206,6 @@ export default function Header() {
         </div>
       </aside>
 
-      {/* Mobile overlay sidebar: toggled by sandwich button */}
       <div className={`md:hidden fixed inset-0 z-30 ${isOpen ? '' : 'pointer-events-none'}`} aria-hidden={!isOpen}>
         <div className={`absolute inset-0 bg-black transition-opacity duration-200 ${isOpen ? 'opacity-40' : 'opacity-0'}`} onClick={() => setIsOpen(false)} />
         <div className={`absolute left-0 top-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-200 ease-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>

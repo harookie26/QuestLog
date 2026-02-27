@@ -94,6 +94,7 @@ export default function HomePage(){
   }, [location.pathname])
 
   const [topThreads, setTopThreads] = useState<Thread[] | null>(null)
+  const [topGames, setTopGames] = useState<{ title: string; count: number }[] | null>(null)
 
   useEffect(() => {
     const fetchTop = async () => {
@@ -103,7 +104,23 @@ export default function HomePage(){
         const all = await res.json()
         if (!Array.isArray(all)) {
           setTopThreads([])
+          setTopGames([])
           return
+        }
+
+        try {
+          const gameCounts = new Map<string, number>()
+          all.forEach((t: any) => {
+            const g = t.game
+            if (g) gameCounts.set(String(g), (gameCounts.get(String(g)) || 0) + 1)
+          })
+          const topGamesArr = Array.from(gameCounts.entries())
+            .map(([title, count]) => ({ title, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5)
+          setTopGames(topGamesArr)
+        } catch (e) {
+          setTopGames([])
         }
 
         const withCount = all.map((t: any) => ({
@@ -210,14 +227,33 @@ export default function HomePage(){
       <section className="mb-6">
         <h2 className="text-xl font-bold text-violet-900 mb-2">Popular Games</h2>
         <div className="border-t border-violet-300">
-          {[1,2,3,4,5].map((n)=> (
-            <div key={n} className="flex items-center gap-4">
-              <div className="w-8 text-center font-bold text-violet-800">{n}</div>
-              <div className="flex-1">
-                <CardItem title={`The Elder Scrolls V: Skyrim`} subtitle={`X360 PC PS3 XONE PS4 NS PS5 XBSX NS2`} img={`https://via.placeholder.com/48?text=${n}`} type="game" />
+          {topGames === null ? (
+            [1,2,3,4,5].map((n) => (
+              <div key={n} className="flex items-center gap-4">
+                <div className="w-8 text-center font-bold text-violet-800">{n}</div>
+                <div className="flex-1">
+                  <CardItem title={`Loading...`} subtitle={``} img={`https://via.placeholder.com/48?text=${n}`} type="game" />
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : topGames.length === 0 ? (
+            <div className="p-3 text-sm text-violet-700">No games found</div>
+          ) : (
+            topGames.map((g, idx) => (
+              <div key={g.title} className="flex items-center gap-4">
+                <div className="w-8 text-center font-bold text-violet-800">{idx + 1}</div>
+                <div className="flex-1">
+                  <CardItem
+                    title={g.title}
+                    subtitle={`${g.count} thread${g.count === 1 ? '' : 's'}`}
+                    img={`https://via.placeholder.com/48?text=${idx + 1}`}
+                    type="game"
+                    to={`/threads?game=${encodeURIComponent(g.title)}`}
+                  />
+                </div>
+              </div>
+            ))
+          )}
         </div>
         <div className="mt-3 text-sm"><a href="#" className="text-violet-800 hover:underline">More Games &gt;&gt;</a></div>
       </section>
