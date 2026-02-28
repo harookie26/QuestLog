@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { saveAuth } from '../js/auth'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
+  const [keepSignedIn, setKeepSignedIn] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -33,8 +35,7 @@ export default function LoginPage() {
       }
 
       const user = await res.json()
-      localStorage.setItem('questlog-auth', 'true')
-      localStorage.setItem('questlog-user', JSON.stringify(user))
+      saveAuth(user, keepSignedIn)
       navigate('/')
     } catch {
       setMessage('Unable to reach server. Please try again.')
@@ -70,6 +71,16 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full h-11 sm:h-[64px] rounded-xl border-4 border-violet-700 bg-violet-100 px-6 text-center text-sm sm:text-xl font-semibold tracking-wide text-violet-500 placeholder-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400"
             />
+
+            <label className="flex items-center justify-center gap-2 text-violet-800 font-semibold text-sm sm:text-lg">
+              <input
+                type="checkbox"
+                checked={keepSignedIn}
+                onChange={(e) => setKeepSignedIn(e.target.checked)}
+                className="h-4 w-4 sm:h-5 sm:w-5 accent-violet-700"
+              />
+              Keep Me Signed In
+            </label>
 
             <button
               type="submit"

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Home, List, Gamepad, Server } from 'lucide-react'
+import { clearAuth, getStoredUser } from '../js/auth'
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
@@ -26,19 +27,15 @@ export default function Header() {
 
   useEffect(() => {
     const readDisplayName = () => {
-      try {
-        const raw = localStorage.getItem('questlog-user')
-        if (!raw) {
-          setDisplayName('GUEST')
-          return
-        }
-        const parsed = JSON.parse(raw)
-        const username = typeof parsed?.username === 'string' ? parsed.username.trim() : ''
-        const email = typeof parsed?.email === 'string' ? parsed.email.trim() : ''
-        setDisplayName(username || email || 'GUEST')
-      } catch {
+      const user = getStoredUser<{ username?: string; email?: string }>()
+      if (!user) {
         setDisplayName('GUEST')
+        return
       }
+
+      const username = typeof user.username === 'string' ? user.username.trim() : ''
+      const email = typeof user.email === 'string' ? user.email.trim() : ''
+      setDisplayName(username || email || 'GUEST')
     }
 
     readDisplayName()
@@ -53,14 +50,12 @@ export default function Header() {
       if (isOpenRef.current && isMobile()) {
         setIsOpen(false)
       }
-      if (showUserMenu) {
-        setShowUserMenu(false)
-      }
+      setShowUserMenu(false)
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [showUserMenu])
+  }, [])
 
   useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
@@ -139,8 +134,7 @@ export default function Header() {
   }, [searchQuery])
 
   const handleLogout = () => {
-    localStorage.removeItem('questlog-auth')
-    localStorage.removeItem('questlog-user')
+    clearAuth()
     setShowUserMenu(false)
     setDisplayName('GUEST')
     navigate('/login', { replace: true })

@@ -11,11 +11,12 @@ import CreateProfilePage from './pages/CreateProfilePage'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/react"
+import { isAuthenticated as hasAuth } from './js/auth'
 
 export default function App() {
   const location = useLocation()
   const isAuthPage = location.pathname === '/login' || location.pathname === '/create-profile'
-  const isAuthenticated = typeof window !== 'undefined' && localStorage.getItem('questlog-auth') === 'true'
+  const isAuthenticated = hasAuth()
   const showAppShell = !isAuthPage && isAuthenticated
 
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
