@@ -1,7 +1,59 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export default function CreateProfilePage() {
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [birthdate, setBirthdate] = useState('')
+  const [gender, setGender] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    const missingRequiredField = [username, email, password].some((value) => !value.trim())
+    if (missingRequiredField) {
+      setMessage('Username, email, and password are required.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setMessage('')
+
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username.trim(),
+          email: email.trim(),
+          password,
+          birthdate: birthdate || undefined,
+          gender: gender || undefined
+        })
+      })
+
+      if (!res.ok) {
+        const errText = await res.text()
+        setMessage(errText || 'Failed to create profile.')
+        return
+      }
+
+      setMessage('Profile created successfully! You can now log in.')
+      setUsername('')
+      setEmail('')
+      setPassword('')
+      setBirthdate('')
+      setGender('')
+    } catch (err) {
+      setMessage('Unable to reach server. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-violet-500 flex items-center justify-center p-4 sm:p-8">
       <section className="w-full max-w-4xl bg-violet-100 border-4 border-violet-700 rounded-xl shadow-lg p-5 sm:p-8">
@@ -28,11 +80,13 @@ export default function CreateProfilePage() {
           </button>
         </div>
 
-        <form className="mt-6 sm:mt-8 space-y-3" onSubmit={(e) => e.preventDefault()}>
+        <form className="mt-6 sm:mt-8 space-y-3" onSubmit={handleSubmit}>
           <div>
             <label className="block text-violet-800 text-lg sm:text-2xl font-serif mb-1">Username</label>
             <input
               type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
             />
           </div>
@@ -41,6 +95,8 @@ export default function CreateProfilePage() {
             <label className="block text-violet-800 text-lg sm:text-2xl font-serif mb-1">Email</label>
             <input
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
             />
           </div>
@@ -49,6 +105,8 @@ export default function CreateProfilePage() {
             <label className="block text-violet-800 text-lg sm:text-2xl font-serif mb-1">Password</label>
             <input
               type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
             />
           </div>
@@ -57,6 +115,8 @@ export default function CreateProfilePage() {
             <label className="block text-violet-800 text-lg sm:text-2xl font-serif mb-1">Birthdate</label>
             <input
               type="date"
+              value={birthdate}
+              onChange={(e) => setBirthdate(e.target.value)}
               className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
             />
           </div>
@@ -64,7 +124,8 @@ export default function CreateProfilePage() {
           <div>
             <label className="block text-violet-800 text-lg sm:text-2xl font-serif mb-1">Gender</label>
             <select
-              defaultValue=""
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
               className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
             >
               <option value="" disabled>
@@ -79,10 +140,15 @@ export default function CreateProfilePage() {
 
           <button
             type="submit"
+            disabled={isSubmitting}
             className="w-full h-12 sm:h-16 mt-4 rounded-2xl border-4 border-violet-700 bg-violet-300 text-violet-800 text-lg sm:text-3xl font-extrabold"
           >
-            CREATE PROFILE
+            {isSubmitting ? 'CREATING PROFILE...' : 'CREATE PROFILE'}
           </button>
+
+          {message && (
+            <p className="text-violet-900 text-sm sm:text-base font-semibold">{message}</p>
+          )}
         </form>
       </section>
     </div>
