@@ -8,6 +8,9 @@ export default function CreateProfilePage() {
   const [password, setPassword] = useState('')
   const [birthdate, setBirthdate] = useState('')
   const [gender, setGender] = useState('')
+  const [otp, setOtp] = useState('')
+  const [otpExpiresAt, setOtpExpiresAt] = useState('')
+  const [otpRequested, setOtpRequested] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState('')
   const redirectTimeoutRef = useRef<number | null>(null)
@@ -20,9 +23,7 @@ export default function CreateProfilePage() {
     }
   }, [])
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-
+  const requestOtp = async () => {
     const missingRequiredField = [username, email, password].some((value) => !value.trim())
     if (missingRequiredField) {
       setMessage('Username, email, and password are required.')
@@ -33,7 +34,7 @@ export default function CreateProfilePage() {
     setMessage('')
 
     try {
-      const res = await fetch('/api/users', {
+      const res = await fetch('/api/users/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -47,7 +48,53 @@ export default function CreateProfilePage() {
 
       if (!res.ok) {
         const errText = await res.text()
-        setMessage(errText || 'Failed to create profile.')
+        setMessage(errText || 'Failed to send verification code.')
+        return
+      }
+
+      const data = await res.json()
+      setOtpRequested(true)
+      setOtp('')
+      setOtpExpiresAt(data?.expiresAt || '')
+
+      const devNote = data?.devOtp
+        ? ` Dev OTP: ${data.devOtp}`
+        : ''
+      setMessage(`Verification code sent to your email. Enter the 6-digit code to continue.${devNote}`)
+    } catch (err) {
+      setMessage('Unable to reach server. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const verifyOtpAndCreate = async () => {
+    if (!otp.trim()) {
+      setMessage('Please enter the 6-digit verification code.')
+      return
+    }
+
+    if (!/^\d{6}$/.test(otp.trim())) {
+      setMessage('Verification code must be exactly 6 digits.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setMessage('')
+
+    try {
+      const res = await fetch('/api/users/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          otp: otp.trim()
+        })
+      })
+
+      if (!res.ok) {
+        const errText = await res.text()
+        setMessage(errText || 'Failed to verify code.')
         return
       }
 
@@ -57,6 +104,9 @@ export default function CreateProfilePage() {
       setPassword('')
       setBirthdate('')
       setGender('')
+      setOtp('')
+      setOtpExpiresAt('')
+      setOtpRequested(false)
 
       if (redirectTimeoutRef.current) {
         window.clearTimeout(redirectTimeoutRef.current)
@@ -70,6 +120,15 @@ export default function CreateProfilePage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!otpRequested) {
+      await requestOtp()
+      return
+    }
+    await verifyOtpAndCreate()
   }
 
   return (
@@ -105,6 +164,7 @@ export default function CreateProfilePage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              disabled={otpRequested || isSubmitting}
               className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
             />
           </div>
@@ -115,6 +175,7 @@ export default function CreateProfilePage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={otpRequested || isSubmitting}
               className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
             />
           </div>
@@ -125,6 +186,7 @@ export default function CreateProfilePage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={otpRequested || isSubmitting}
               className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
             />
           </div>
@@ -135,6 +197,7 @@ export default function CreateProfilePage() {
               type="date"
               value={birthdate}
               onChange={(e) => setBirthdate(e.target.value)}
+              disabled={otpRequested || isSubmitting}
               className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
             />
           </div>
@@ -144,6 +207,7 @@ export default function CreateProfilePage() {
             <select
               value={gender}
               onChange={(e) => setGender(e.target.value)}
+              disabled={otpRequested || isSubmitting}
               className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
             >
               <option value="" disabled>
@@ -156,13 +220,49 @@ export default function CreateProfilePage() {
             </select>
           </div>
 
+          {otpRequested && (
+            <div>
+              <label className="block text-violet-800 text-lg sm:text-2xl font-serif mb-1">Verification Code</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
+              />
+              {otpExpiresAt && (
+                <p className="mt-2 text-violet-900 text-sm sm:text-base font-semibold">
+                  Code expires at {new Date(otpExpiresAt).toLocaleString()}.
+                </p>
+              )}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={isSubmitting}
             className="w-full h-12 sm:h-16 mt-4 rounded-2xl border-4 border-violet-700 bg-violet-300 text-violet-800 text-lg sm:text-3xl font-extrabold"
           >
-            {isSubmitting ? 'CREATING PROFILE...' : 'CREATE PROFILE'}
+            {!otpRequested
+              ? isSubmitting
+                ? 'SENDING CODE...'
+                : 'SEND VERIFICATION CODE'
+              : isSubmitting
+                ? 'VERIFYING...'
+                : 'VERIFY CODE & CREATE PROFILE'}
           </button>
+
+          {otpRequested && (
+            <button
+              type="button"
+              onClick={requestOtp}
+              disabled={isSubmitting}
+              className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-200 text-violet-800 text-base sm:text-2xl font-extrabold"
+            >
+              {isSubmitting ? 'RESENDING...' : 'RESEND CODE'}
+            </button>
+          )}
 
           {message && (
             <p className="text-violet-900 text-sm sm:text-base font-semibold">{message}</p>
