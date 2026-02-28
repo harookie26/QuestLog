@@ -94,9 +94,9 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-5 text-center">
-            <a href="#" className="text-violet-800 underline text-xs sm:text-2xl">
+            <Link to="/forgot-password" className="text-violet-800 underline text-xs sm:text-2xl">
               I FORGOT MY PASSWORD
-            </a>
+            </Link>
           </div>
 
           <hr className="my-8 sm:my-10 border-2 border-violet-300" />

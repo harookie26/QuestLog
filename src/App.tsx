@@ -8,6 +8,8 @@ import MainGamesPage from './pages/MainGamesPage'
 import MainPlatformsPage from './pages/MainPlatformsPage'
 import LoginPage from './pages/LoginPage'
 import CreateProfilePage from './pages/CreateProfilePage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/react"
@@ -15,7 +17,11 @@ import { isAuthenticated as hasAuth } from './js/auth'
 
 export default function App() {
   const location = useLocation()
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/create-profile'
+  const isAuthPage =
+    location.pathname === '/login' ||
+    location.pathname === '/create-profile' ||
+    location.pathname === '/forgot-password' ||
+    location.pathname === '/reset-password'
   const isAuthenticated = hasAuth()
   const showAppShell = !isAuthPage && isAuthenticated
 
@@ -32,6 +38,8 @@ export default function App() {
           <Route path="/" element={isAuthenticated ? <HomePage /> : <Navigate to="/login" replace />} />
           <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
           <Route path="/create-profile" element={<CreateProfilePage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/threads" element={<ProtectedRoute><MainThreadsPage /></ProtectedRoute>} />
           <Route path="/threads/inside" element={<ProtectedRoute><InsideThreadsPage /></ProtectedRoute>} />
           <Route path="/threads/inside/:id" element={<ProtectedRoute><InsideThreadsPage /></ProtectedRoute>} />
