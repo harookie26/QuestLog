@@ -3,9 +3,7 @@
 	--violet-100: #f3e8ff;
 }
 
-/* small helpers used by the mockup */
 .card-shadow{box-shadow: 0 6px 20px rgba(99,102,241,0.06)}
 
-/* ensure body background fits the mockup */
 body{background-color: var(--violet-50)}
 

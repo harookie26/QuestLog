@@ -41,7 +41,6 @@ export default function HomePage(){
   const [showNew, setShowNew] = useState(false)
 
   useEffect(() => {
-    // Fetch popular topics from backend. Adjust endpoint/query as needed.
     fetch('/api/threads?popular=true')
       .then((res) => {
         if (!res.ok) throw new Error(res.statusText)
@@ -57,8 +56,6 @@ export default function HomePage(){
   const location = useLocation()
 
   useEffect(() => {
-    // Use localStorage to determine which thread ids the user recently opened.
-    // If present, fetch all threads and pick matching ones in order (limit 2).
     const fetchRecentFromLocal = async () => {
       try {
         const raw = localStorage.getItem('recentThreadIds')
@@ -72,7 +69,6 @@ export default function HomePage(){
         }
 
         if (Array.isArray(ids) && ids.length > 0) {
-          // preserve order from ids, map to full thread objects when available
           const byId = new Map(all.map((t: any) => [String(t._id), t]))
           const matched = ids.map(id => byId.get(id)).filter(Boolean)
           if (matched.length > 0) {
@@ -81,7 +77,6 @@ export default function HomePage(){
           }
         }
 
-        // fallback to latest
         setRecentThreads(all.slice(0, 2))
       } catch (err) {
         setRecentThreads([])
