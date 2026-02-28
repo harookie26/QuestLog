@@ -13,7 +13,9 @@ export default function InsideThreadsPage(){
   const [thread, setThread] = useState<Thread | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [reply, setReply] = useState('')
+  const [isPosting, setIsPosting] = useState(false)
   const replyRef = useRef<HTMLTextAreaElement | null>(null)
+  const postingRef = useRef(false)
 
   useEffect(() => {
     if (!id) return
@@ -53,12 +55,18 @@ export default function InsideThreadsPage(){
 
   const postReply = async () => {
     if (!id) return
-    if (!reply.trim()) return
+    const messageBody = reply.trim()
+    if (!messageBody) return
+    if (postingRef.current) return
+
+    postingRef.current = true
+    setIsPosting(true)
+
     try {
       const res = await fetch(`/api/threads/${id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: reply, author: author || 'Anonymous' })
+        body: JSON.stringify({ body: messageBody, author: author || 'Anonymous' })
       })
       if (!res.ok) throw new Error(res.statusText)
       const created: Message = await res.json()
@@ -66,6 +74,9 @@ export default function InsideThreadsPage(){
       setReply('')
     } catch (err) {
       console.error('Failed to post reply', err)
+    } finally {
+      postingRef.current = false
+      setIsPosting(false)
     }
   }
 
@@ -133,7 +144,13 @@ export default function InsideThreadsPage(){
         </div>
         <div className="mt-2 flex items-center justify-between">
           <div className="text-sm text-violet-600">Page <select className="ml-1 border rounded px-1 py-0.5"><option>1</option></select> of 12</div>
-          <button onClick={postReply} className="px-4 py-2 bg-violet-700 text-white rounded">Post New Message</button>
+          <button
+            onClick={postReply}
+            disabled={isPosting || !reply.trim()}
+            className="px-4 py-2 bg-violet-700 text-white rounded disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isPosting ? 'Posting...' : 'Post New Message'}
+          </button>
         </div>
       </section>
     </div>
