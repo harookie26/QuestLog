@@ -1,5 +1,5 @@
-import { connect } from '../db.js';
-import Thread from '../models/Thread.js';
+import { connect } from '../../lib/db.js';
+import Thread from '../../lib/models/Thread.js';
 
 export default async function handler(req, res) {
   try {

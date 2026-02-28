@@ -1,5 +1,5 @@
-import { connect } from '../db.js';
-import Game from '../models/Game.js';
+import { connect } from '../../lib/db.js';
+import Game from '../../lib/models/Game.js';
 
 export default async function handler(req, res) {
   try {

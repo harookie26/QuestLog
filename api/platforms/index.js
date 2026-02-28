@@ -1,5 +1,5 @@
-import { connect } from '../db.js';
-import Platform from '../models/Platform.js';
+import { connect } from '../../lib/db.js';
+import Platform from '../../lib/models/Platform.js';
 
 export default async function handler(req, res) {
   try {
