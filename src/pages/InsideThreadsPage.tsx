@@ -1,11 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
+import { getStoredUser } from '../js/auth'
 
 type Thread = { _id?: string; title?: string; game?: string; platform?: string; author?: string; body?: string }
 type Message = { _id?: string; thread?: string; author?: string; body?: string; createdAt?: string }
 
 export default function InsideThreadsPage(){
   const { id } = useParams<{ id?: string }>()
+  type AuthUser = { username?: string }
+  const storedUser = getStoredUser<AuthUser>()
+  const author = storedUser?.username?.trim() || ''
   const [thread, setThread] = useState<Thread | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [reply, setReply] = useState('')
@@ -54,7 +58,7 @@ export default function InsideThreadsPage(){
       const res = await fetch(`/api/threads/${id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: reply, author: 'Anonymous' })
+        body: JSON.stringify({ body: reply, author: author || 'Anonymous' })
       })
       if (!res.ok) throw new Error(res.statusText)
       const created: Message = await res.json()

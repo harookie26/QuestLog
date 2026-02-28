@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { getStoredUser } from '../js/auth'
 
 export default function NewThread({ onClose, onCreate }: { onClose: () => void, onCreate?: (t: any) => void }){
+	type AuthUser = { username?: string }
+	const storedUser = getStoredUser<AuthUser>()
+	const author = storedUser?.username?.trim() || ''
+
 	const [platform, setPlatform] = useState('')
 	const [platforms, setPlatforms] = useState<string[]>([])
 	const [platformQuery, setPlatformQuery] = useState('')
@@ -33,7 +38,7 @@ export default function NewThread({ onClose, onCreate }: { onClose: () => void, 
 		setLoading(true)
 		setError(null)
 		try {
-			const payload = { title: title.trim(), game, platform, body: message }
+			const payload = { title: title.trim(), game, platform, body: message, author: author || undefined }
 			const res = await fetch('/api/threads', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
