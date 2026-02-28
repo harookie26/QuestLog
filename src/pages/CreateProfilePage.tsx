@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 
 export default function CreateProfilePage() {
+  const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -9,6 +10,15 @@ export default function CreateProfilePage() {
   const [gender, setGender] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState('')
+  const redirectTimeoutRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        window.clearTimeout(redirectTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -41,12 +51,20 @@ export default function CreateProfilePage() {
         return
       }
 
-      setMessage('Profile created successfully! You can now log in.')
+      setMessage('Profile created successfully! Redirecting to login in 20 seconds...')
       setUsername('')
       setEmail('')
       setPassword('')
       setBirthdate('')
       setGender('')
+
+      if (redirectTimeoutRef.current) {
+        window.clearTimeout(redirectTimeoutRef.current)
+      }
+
+      redirectTimeoutRef.current = window.setTimeout(() => {
+        navigate('/login')
+      }, 20000)
     } catch (err) {
       setMessage('Unable to reach server. Please try again.')
     } finally {
