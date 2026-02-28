@@ -7,6 +7,7 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [displayName, setDisplayName] = useState('GUEST')
+  const [showUserMenu, setShowUserMenu] = useState(false)
   type ThreadResult = { _id: string; title: string; game?: string }
   type GameResult = { _id: string; name: string }
   const [searchResults, setSearchResults] = useState<{ threads: ThreadResult[]; games: GameResult[] }>({ threads: [], games: [] })
@@ -18,6 +19,7 @@ export default function Header() {
   const isMobile = () => (typeof window !== 'undefined' ? window.innerWidth < 768 : false)
   const isOpenRef = React.useRef(isOpen)
   const searchTimerRef = useRef<number | null>(null)
+  const userMenuRef = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     isOpenRef.current = isOpen
   }, [isOpen])
@@ -51,10 +53,35 @@ export default function Header() {
       if (isOpenRef.current && isMobile()) {
         setIsOpen(false)
       }
+      if (showUserMenu) {
+        setShowUserMenu(false)
+      }
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
+  }, [showUserMenu])
+
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!userMenuRef.current) return
+      if (!userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false)
+      }
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowUserMenu(false)
+      }
+    }
+
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
   }, [])
 
   // When sidebar is visible, shift the page content by adding left margin to body (desktop only)
@@ -110,6 +137,15 @@ export default function Header() {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
     }
   }, [searchQuery])
+
+  const handleLogout = () => {
+    localStorage.removeItem('questlog-auth')
+    localStorage.removeItem('questlog-user')
+    setShowUserMenu(false)
+    setDisplayName('GUEST')
+    navigate('/login', { replace: true })
+  }
+
   return (
     <>
       <header className={`${scrolled ? 'fixed top-0 left-0 right-0 z-50 bg-violet-300/95 shadow-md backdrop-blur-sm' : 'relative z-50 bg-violet-300'}`}>
@@ -202,9 +238,38 @@ export default function Header() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 relative" ref={userMenuRef}>
               <div className="text-xs text-violet-900 hidden sm:block">✉️ (1) | 🔔 | {displayName}</div>
-              <div className="w-9 h-9 bg-white/90 rounded-full flex items-center justify-center text-violet-700">👤</div>
+              <button
+                type="button"
+                onClick={() => setShowUserMenu(v => !v)}
+                aria-expanded={showUserMenu}
+                aria-haspopup="menu"
+                aria-label="Open account menu"
+                className="w-9 h-9 bg-white/90 rounded-full flex items-center justify-center text-violet-700 hover:bg-white"
+              >
+                👤
+              </button>
+              {showUserMenu && (
+                <div className="absolute right-0 top-11 w-40 bg-white border border-violet-200 rounded-md shadow-md z-50 py-1" role="menu" aria-label="Account menu">
+                  <Link
+                    to="#"
+                    onClick={() => setShowUserMenu(false)}
+                    className="block w-full text-left px-3 py-2 text-sm text-violet-900 hover:bg-violet-50"
+                    role="menuitem"
+                  >
+                    Account Profile
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="block w-full text-left px-3 py-2 text-sm text-violet-900 hover:bg-violet-50"
+                    role="menuitem"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
