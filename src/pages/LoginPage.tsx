@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 
 export default function LoginPage() {
   return (
@@ -41,12 +42,12 @@ export default function LoginPage() {
 
           <hr className="my-8 sm:my-10 border-2 border-violet-300" />
 
-          <button
-            type="button"
-            className="block w-full max-w-[70%] sm:max-w-[50%] mx-auto h-10 sm:h-[56px] px-4 rounded-xl border-4 border-violet-700 bg-violet-300 text-violet-800 text-base sm:text-3xl font-extrabold whitespace-nowrap"
+          <Link
+            to="/create-profile"
+            className="block w-full max-w-[70%] sm:max-w-[50%] mx-auto h-10 sm:h-[56px] px-4 rounded-xl border-4 border-violet-700 bg-violet-300 text-violet-800 text-base sm:text-3xl font-extrabold whitespace-nowrap text-center leading-[2rem] sm:leading-[2.8rem]"
           >
             CREATE PROFILE
-          </button>
+          </Link>
         </div>
       </section>
     </div>
