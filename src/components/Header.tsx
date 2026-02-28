@@ -6,6 +6,7 @@ export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [displayName, setDisplayName] = useState('GUEST')
   type ThreadResult = { _id: string; title: string; game?: string }
   type GameResult = { _id: string; name: string }
   const [searchResults, setSearchResults] = useState<{ threads: ThreadResult[]; games: GameResult[] }>({ threads: [], games: [] })
@@ -20,6 +21,28 @@ export default function Header() {
   useEffect(() => {
     isOpenRef.current = isOpen
   }, [isOpen])
+
+  useEffect(() => {
+    const readDisplayName = () => {
+      try {
+        const raw = localStorage.getItem('questlog-user')
+        if (!raw) {
+          setDisplayName('GUEST')
+          return
+        }
+        const parsed = JSON.parse(raw)
+        const username = typeof parsed?.username === 'string' ? parsed.username.trim() : ''
+        const email = typeof parsed?.email === 'string' ? parsed.email.trim() : ''
+        setDisplayName(username || email || 'GUEST')
+      } catch {
+        setDisplayName('GUEST')
+      }
+    }
+
+    readDisplayName()
+    window.addEventListener('storage', readDisplayName)
+    return () => window.removeEventListener('storage', readDisplayName)
+  }, [])
 
   useEffect(() => {
     const onScroll = () => {
@@ -180,7 +203,7 @@ export default function Header() {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="text-xs text-violet-900 hidden sm:block">✉️ (1) | 🔔 | USER123</div>
+              <div className="text-xs text-violet-900 hidden sm:block">✉️ (1) | 🔔 | {displayName}</div>
               <div className="w-9 h-9 bg-white/90 rounded-full flex items-center justify-center text-violet-700">👤</div>
             </div>
           </div>
