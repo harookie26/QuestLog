@@ -1,5 +1,6 @@
 import { connect } from '../db.js';
 import User from '../models/User.js';
+import bcrypt from 'bcryptjs';
 
 function toCaseInsensitiveExactRegex(value) {
   return new RegExp(`^${String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
@@ -43,10 +44,12 @@ export default async function handler(req, res) {
         }
       }
 
+      const hashedPassword = await bcrypt.hash(String(password), 10);
+
       const userToInsert = {
         username: cleanUsername,
         email: cleanEmail,
-        password: String(password),
+        password: hashedPassword,
         birthdate: parsedBirthdate,
         gender: gender ? String(gender) : undefined,
         createdAt: new Date()
