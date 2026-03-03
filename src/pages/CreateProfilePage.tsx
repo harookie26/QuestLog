@@ -136,7 +136,7 @@ export default function CreateProfilePage() {
       <section className="w-full max-w-4xl bg-violet-100 border-4 border-violet-700 rounded-xl shadow-lg p-5 sm:p-8">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-4xl sm:text-6xl font-extrabold text-violet-800 font-serif leading-none">Edit Your Profile</h1>
+            <h1 className="text-4xl sm:text-6xl font-extrabold text-violet-800 font-serif leading-none">Create Your Profile</h1>
             <p className="mt-2 text-xl sm:text-3xl text-violet-800 font-serif">Customize your log</p>
           </div>
           <Link
