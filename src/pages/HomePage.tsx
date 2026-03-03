@@ -250,7 +250,7 @@ export default function HomePage(){
             ))
           )}
         </div>
-        <div className="mt-3 text-sm"><a href="#" className="text-violet-800 hover:underline">More Games &gt;&gt;</a></div>
+        <div className="mt-3 text-sm"><Link to="/games" className="text-violet-800 hover:underline">More Games &gt;&gt;</Link></div>
       </section>
     </div>
     {showNew && <NewThread onClose={() => setShowNew(false)} />}
