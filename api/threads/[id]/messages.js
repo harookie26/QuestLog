@@ -15,24 +15,20 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      let messages = await Message.find({ thread: id }).sort({ createdAt: -1 }).lean();
-      if (!messages || messages.length === 0) {
-        // try casting id to ObjectId
-        try {
-          const oid = mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null;
-          if (oid) messages = await Message.find({ thread: oid }).sort({ createdAt: -1 }).lean();
-        } catch (e) {
-          // ignore
-        }
+      const candidates = [id];
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        candidates.push(new mongoose.Types.ObjectId(id));
       }
-      if (!messages || messages.length === 0) {
-        // try alternate field names some existing data uses
-        messages = await Message.find({ threadId: id }).sort({ createdAt: -1 }).lean();
-        if ((!messages || messages.length === 0) && mongoose.Types.ObjectId.isValid(id)) {
-          const oid = new mongoose.Types.ObjectId(id);
-          messages = await Message.find({ threadId: oid }).sort({ createdAt: -1 }).lean();
-        }
-      }
+
+      const messages = await Message.find({
+        $or: [
+          { thread: { $in: candidates } },
+          { threadId: { $in: candidates } }
+        ]
+      })
+        .select('_id thread threadId body author createdAt')
+        .sort({ createdAt: -1 })
+        .lean();
 
       console.log(`Messages query for thread=${id} returned ${messages ? messages.length : 0}`);
       return res.status(200).json(messages || []);
