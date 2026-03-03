@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     try {
       const q = (req.query.q || '').toString();
       const filter = q ? { name: { $regex: q, $options: 'i' } } : {};
-      const platforms = await Platform.find(filter).sort('name').limit(500);
+      const platforms = await Platform.find(filter).select('_id name generation').sort('name').limit(500).lean();
       return res.status(200).json(platforms.map(p => ({ _id: p._id.toString(), name: p.name, generation: p.generation })));
     } catch (err) {
       console.error('GET /api/platforms error', err);

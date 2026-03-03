@@ -12,13 +12,29 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const q = (req.query.q || '').toString();
+      const parsedLimit = Number.parseInt((req.query.limit || '').toString(), 10);
+      const parsedPage = Number.parseInt((req.query.page || '').toString(), 10);
+      const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 200) : 50;
+      const page = Number.isFinite(parsedPage) ? Math.max(parsedPage, 1) : 1;
+      const skip = (page - 1) * limit;
+
       if (q) {
         const filter = { $or: [ { title: { $regex: q, $options: 'i' } }, { game: { $regex: q, $options: 'i' } } ] };
-        const threads = await Thread.find(filter).sort('-createdAt').limit(200);
+        const threads = await Thread.find(filter)
+          .select('_id title game')
+          .sort('-createdAt')
+          .skip(skip)
+          .limit(limit)
+          .lean();
         return res.status(200).json(threads.map(t => ({ _id: t._id.toString(), title: t.title, game: t.game })));
       }
 
-      const threads = await Thread.find().sort('-createdAt');
+      const threads = await Thread.find()
+        .select('_id title game platform body author createdAt')
+        .sort('-createdAt')
+        .skip(skip)
+        .limit(limit)
+        .lean();
       return res.status(200).json(threads);
     } catch (err) {
       console.error('GET /api/threads error', err);

@@ -86,8 +86,8 @@ export default function InsideThreadsPage(){
         <div className="flex items-start gap-4">
           <img src="https://via.placeholder.com/80" alt="thumb" className="w-20 h-20 object-cover rounded-sm" />
           <div>
-            <h1 className="text-3xl font-extrabold text-violet-900">{thread?.title ?? 'Did you pull for Zibai?'}</h1>
-            <div className="text-sm text-violet-700">{thread?.game ?? 'Genshin Impact'} <span className="text-violet-500">{thread?.platform ?? 'PlayStation 4'}</span></div>
+            <h1 className="text-3xl font-extrabold text-violet-900">{thread?.title }</h1>
+            <div className="text-sm text-violet-700">{thread?.game} <span className="text-violet-500">{thread?.platform}</span></div>
           </div>
         </div>
 

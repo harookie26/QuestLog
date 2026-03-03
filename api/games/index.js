@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     try {
       const q = (req.query.q || '').toString();
       const filter = q ? { name: { $regex: q, $options: 'i' } } : {};
-      const games = await Game.find(filter).sort('name').limit(500);
+      const games = await Game.find(filter).select('_id name').sort('name').limit(500).lean();
       return res.status(200).json(games.map(g => ({ _id: g._id.toString(), name: g.name })));
     } catch (err) {
       console.error('GET /api/games error', err);
