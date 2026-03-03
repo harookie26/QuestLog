@@ -17,12 +17,13 @@ export default async function handler(req, res) {
       const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 200) : 50;
       const page = Number.isFinite(parsedPage) ? Math.max(parsedPage, 1) : 1;
       const skip = (page - 1) * limit;
+      const queryText = q.trim();
 
-      if (q) {
-        const filter = { $or: [ { title: { $regex: q, $options: 'i' } }, { game: { $regex: q, $options: 'i' } } ] };
+      if (queryText) {
+        const filter = { $text: { $search: queryText } };
         const threads = await Thread.find(filter)
           .select('_id title game')
-          .sort('-createdAt')
+          .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
           .skip(skip)
           .limit(limit)
           .lean();

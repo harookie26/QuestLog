@@ -12,7 +12,8 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const q = (req.query.q || '').toString();
-      const filter = q ? { name: { $regex: q, $options: 'i' } } : {};
+      const queryText = q.trim();
+      const filter = queryText ? { $text: { $search: queryText } } : {};
       const games = await Game.find(filter).select('_id name').sort('name').limit(500).lean();
       return res.status(200).json(games.map(g => ({ _id: g._id.toString(), name: g.name })));
     } catch (err) {

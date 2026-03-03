@@ -12,7 +12,8 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const q = (req.query.q || '').toString();
-      const filter = q ? { name: { $regex: q, $options: 'i' } } : {};
+      const queryText = q.trim();
+      const filter = queryText ? { $text: { $search: queryText } } : {};
       const platforms = await Platform.find(filter).select('_id name generation').sort('name').limit(500).lean();
       return res.status(200).json(platforms.map(p => ({ _id: p._id.toString(), name: p.name, generation: p.generation })));
     } catch (err) {
