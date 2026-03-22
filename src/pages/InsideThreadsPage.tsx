@@ -2,7 +2,9 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getStoredUser } from '../js/auth'
 
-type Thread = { _id?: string; title?: string; game?: string; platform?: string; author?: string; body?: string; createdAt?: string }
+const CATEGORY_OPTIONS = ['Recommendation', 'Question', 'Bug Report'] as const
+
+type Thread = { _id?: string; title?: string; game?: string; platform?: string; category?: string; tags?: string[]; author?: string; body?: string; createdAt?: string }
 type Message = { _id?: string; thread?: string; author?: string; body?: string; createdAt?: string }
 
 const normalizeUser = (value?: string) => String(value || '').trim().toLowerCase()
@@ -23,6 +25,8 @@ export default function InsideThreadsPage(){
   const [isEditingThread, setIsEditingThread] = useState(false)
   const [threadTitleDraft, setThreadTitleDraft] = useState('')
   const [threadBodyDraft, setThreadBodyDraft] = useState('')
+  const [threadCategoryDraft, setThreadCategoryDraft] = useState<typeof CATEGORY_OPTIONS[number]>('Question')
+  const [threadTagsDraft, setThreadTagsDraft] = useState<string>('')
   const [isSavingThread, setIsSavingThread] = useState(false)
   const [isDeletingThread, setIsDeletingThread] = useState(false)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
@@ -102,6 +106,13 @@ export default function InsideThreadsPage(){
     setThreadError(null)
     setThreadTitleDraft(thread?.title || '')
     setThreadBodyDraft(thread?.body || '')
+    const currentCategory = thread?.category || 'Question'
+    setThreadCategoryDraft(
+      CATEGORY_OPTIONS.includes(currentCategory as typeof CATEGORY_OPTIONS[number])
+        ? (currentCategory as typeof CATEGORY_OPTIONS[number])
+        : 'Question'
+    )
+    setThreadTagsDraft(Array.isArray(thread?.tags) ? thread!.tags!.join(', ') : '')
     setIsEditingThread(true)
   }
 
@@ -114,8 +125,16 @@ export default function InsideThreadsPage(){
     if (!id || !thread) return
     const nextTitle = threadTitleDraft.trim()
     const nextBody = threadBodyDraft.trim()
+    const nextTags = threadTagsDraft
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(Boolean)
     if (!nextTitle) {
       setThreadError('Thread title cannot be empty.')
+      return
+    }
+    if (!CATEGORY_OPTIONS.includes(threadCategoryDraft)) {
+      setThreadError('Please select a valid category.')
       return
     }
 
@@ -128,6 +147,8 @@ export default function InsideThreadsPage(){
         body: JSON.stringify({
           title: nextTitle,
           body: nextBody,
+          category: threadCategoryDraft,
+          tags: nextTags,
           currentUser: author
         })
       })
@@ -249,6 +270,18 @@ export default function InsideThreadsPage(){
           <div>
             <h1 className="text-3xl font-extrabold text-violet-900">{thread?.title }</h1>
             <div className="text-sm text-violet-700">{thread?.game} <span className="text-violet-500">{thread?.platform}</span></div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {thread?.category ? (
+                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-violet-200 text-violet-900 border border-violet-300">
+                  {thread.category}
+                </span>
+              ) : null}
+              {(thread?.tags || []).map(tag => (
+                <span key={tag} className="inline-flex items-center px-2 py-1 rounded text-xs bg-white text-violet-800 border border-violet-200">
+                  #{tag}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -301,6 +334,29 @@ export default function InsideThreadsPage(){
                   className="w-full min-h-28 border border-violet-300 rounded px-2 py-2"
                   placeholder="Thread body"
                 />
+                <div className="grid md:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs text-violet-700 mb-1">Category</label>
+                    <select
+                      value={threadCategoryDraft}
+                      onChange={(e) => setThreadCategoryDraft(e.target.value as typeof CATEGORY_OPTIONS[number])}
+                      className="w-full border border-violet-300 rounded px-2 py-1"
+                    >
+                      {CATEGORY_OPTIONS.map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-violet-700 mb-1">Tags (comma separated)</label>
+                    <input
+                      value={threadTagsDraft}
+                      onChange={(e) => setThreadTagsDraft(e.target.value)}
+                      className="w-full border border-violet-300 rounded px-2 py-1"
+                      placeholder="speedrun, co-op, build-help"
+                    />
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={saveThreadEdit} disabled={isSavingThread} className="px-3 py-1 bg-violet-700 text-white text-sm rounded disabled:opacity-60">{isSavingThread ? 'Saving...' : 'Save'}</button>
                   <button type="button" onClick={cancelThreadEdit} className="px-3 py-1 border border-violet-300 text-violet-700 text-sm rounded">Cancel</button>

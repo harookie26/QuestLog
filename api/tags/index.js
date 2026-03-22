@@ -1,0 +1,43 @@
+import { connect } from '../../lib/db.js';
+import Tag from '../../lib/models/Tag.js';
+
+export default async function handler(req, res) {
+  try {
+    await connect();
+  } catch (err) {
+    console.error('DB connect error', err);
+    return res.status(500).send('Database connection error');
+  }
+
+  if (req.method === 'GET') {
+    try {
+      const q = (req.query.q || '').toString();
+      const queryText = q.trim();
+      const filter = queryText ? { $text: { $search: queryText } } : {};
+      const tags = await Tag.find(filter).select('_id name').sort('name').limit(500).lean();
+      return res.status(200).json(tags.map((t) => ({ _id: t._id.toString(), name: t.name })));
+    } catch (err) {
+      console.error('GET /api/tags error', err);
+      return res.status(500).send('Failed to fetch tags');
+    }
+  }
+
+  if (req.method === 'POST') {
+    try {
+      const { name } = req.body || {};
+      if (!name || !name.trim()) return res.status(400).send('name is required');
+      const clean = name.trim();
+      const escaped = clean.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const existing = await Tag.findOne({ name: new RegExp(`^${escaped}$`, 'i') });
+      if (existing) return res.status(409).json({ _id: existing._id.toString(), name: existing.name, message: 'already exists' });
+      const created = await Tag.collection.insertOne({ name: clean, createdAt: new Date() });
+      return res.status(201).json({ _id: created.insertedId.toString(), name: clean });
+    } catch (err) {
+      console.error('POST /api/tags error', err);
+      return res.status(500).send('Failed to create tag');
+    }
+  }
+
+  res.setHeader('Allow', ['GET', 'POST']);
+  res.status(405).end(`Method ${req.method} Not Allowed`);
+}

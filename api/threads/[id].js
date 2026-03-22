@@ -1,6 +1,9 @@
 import { connect } from '../../lib/db.js';
 import Thread from '../../lib/models/Thread.js';
 import Message from '../../lib/models/Message.js';
+import Tag from '../../lib/models/Tag.js';
+
+const VALID_CATEGORIES = new Set(['Recommendation', 'Question', 'Bug Report']);
 
 function normalizeUser(value) {
   return String(value || '').trim().toLowerCase();
@@ -8,6 +11,39 @@ function normalizeUser(value) {
 
 function getCurrentUser(req) {
   return normalizeUser(req?.body?.currentUser || req?.query?.currentUser || '');
+}
+
+function normalizeCategory(value) {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return VALID_CATEGORIES.has(trimmed) ? trimmed : undefined;
+}
+
+function normalizeTags(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  const tags = [];
+  for (const item of value) {
+    if (typeof item !== 'string') continue;
+    const trimmed = item.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    tags.push(trimmed);
+  }
+  return tags;
+}
+
+async function persistTags(tags) {
+  if (!Array.isArray(tags) || tags.length === 0) return;
+  for (const tag of tags) {
+    const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existing = await Tag.findOne({ name: new RegExp(`^${escaped}$`, 'i') }).select('_id').lean();
+    if (!existing) {
+      await Tag.collection.insertOne({ name: tag, createdAt: new Date() });
+    }
+  }
 }
 
 export default async function handler(req, res) {
@@ -40,15 +76,24 @@ export default async function handler(req, res) {
       if (!owner || owner !== currentUser) return res.status(403).send('Only the thread owner can edit this thread');
 
       const payload = req.body || {};
+      if (payload.category !== undefined && !normalizeCategory(payload.category)) {
+        return res.status(400).send('category must be one of Recommendation, Question, or Bug Report');
+      }
       const updates = {
         ...(typeof payload.title === 'string' ? { title: payload.title.trim() } : {}),
         ...(typeof payload.body === 'string' ? { body: payload.body.trim() } : {}),
         ...(typeof payload.game === 'string' ? { game: payload.game.trim() } : {}),
-        ...(typeof payload.platform === 'string' ? { platform: payload.platform.trim() } : {})
+        ...(typeof payload.platform === 'string' ? { platform: payload.platform.trim() } : {}),
+        ...(typeof payload.category === 'string' ? { category: normalizeCategory(payload.category) } : {}),
+        ...(payload.tags !== undefined ? { tags: normalizeTags(payload.tags) } : {})
       };
 
       if (Object.keys(updates).length === 0) {
         return res.status(400).send('No valid fields to update');
+      }
+
+      if (updates.tags) {
+        await persistTags(updates.tags);
       }
 
       const updated = await Thread.findByIdAndUpdate(id, updates, { new: true });
