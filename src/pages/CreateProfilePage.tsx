@@ -1,6 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+interface ValidationErrors {
+  username?: string
+  email?: string
+  password?: string
+  otp?: string
+}
+
 export default function CreateProfilePage() {
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
@@ -13,6 +20,7 @@ export default function CreateProfilePage() {
   const [otpRequested, setOtpRequested] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState('')
+  const [errors, setErrors] = useState<ValidationErrors>({})
   const redirectTimeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -23,10 +31,88 @@ export default function CreateProfilePage() {
     }
   }, [])
 
+  // Validation functions
+  const validateEmail = (emailValue: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(emailValue.trim())
+  }
+
+  const validateUsername = (usernameValue: string): boolean => {
+    const trimmedUsername = usernameValue.trim()
+    // Username should be 3-20 characters, alphanumeric and underscores only
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/
+    return usernameRegex.test(trimmedUsername)
+  }
+
+  const getPasswordStrength = (
+    passwordValue: string
+  ): {
+    strength: 'weak' | 'fair' | 'good' | 'strong'
+    score: number
+  } => {
+    let score = 0
+    const hasLowercase = /[a-z]/.test(passwordValue)
+    const hasUppercase = /[A-Z]/.test(passwordValue)
+    const hasNumbers = /\d/.test(passwordValue)
+    const hasSpecialChar = /[!@#$%^&*()_\-+=\[\]{};:'",.<>?\/\\|`~]/.test(passwordValue)
+    const isLongEnough = passwordValue.length >= 8
+    const isVerylongEnough = passwordValue.length >= 12
+
+    if (passwordValue.length > 0) score += 1
+    if (isLongEnough) score += 1
+    if (isVerylongEnough) score += 1
+    if (hasLowercase) score += 1
+    if (hasUppercase) score += 1
+    if (hasNumbers) score += 1
+    if (hasSpecialChar) score += 2
+
+    let strength: 'weak' | 'fair' | 'good' | 'strong' = 'weak'
+    if (score >= 7) {
+      strength = 'strong'
+    } else if (score >= 5) {
+      strength = 'good'
+    } else if (score >= 3) {
+      strength = 'fair'
+    } else {
+      strength = 'weak'
+    }
+
+    return { strength, score }
+  }
+
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {}
+
+    if (!username.trim()) {
+      newErrors.username = 'Username is required.'
+    } else if (!validateUsername(username)) {
+      newErrors.username = 'Username must be 3-20 characters, containing only letters, numbers, and underscores.'
+    }
+
+    if (!email.trim()) {
+      newErrors.email = 'Email is required.'
+    } else if (!validateEmail(email)) {
+      newErrors.email = 'Please enter a valid email address.'
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required.'
+    } else if (password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters long.'
+    } else {
+      const { strength } = getPasswordStrength(password)
+      if (strength === 'weak') {
+        newErrors.password = 'Password is too weak. Add uppercase, numbers, and special characters.'
+      }
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const requestOtp = async () => {
-    const missingRequiredField = [username, email, password].some((value) => !value.trim())
-    if (missingRequiredField) {
-      setMessage('Username, email, and password are required.')
+    // Validate form before requesting OTP
+    if (!validateForm()) {
       return
     }
 
@@ -56,6 +142,7 @@ export default function CreateProfilePage() {
       setOtpRequested(true)
       setOtp('')
       setOtpExpiresAt(data?.expiresAt || '')
+      setErrors({})
 
       const devNote = data?.devOtp
         ? ` Dev OTP: ${data.devOtp}`
@@ -69,13 +156,16 @@ export default function CreateProfilePage() {
   }
 
   const verifyOtpAndCreate = async () => {
+    const newErrors: ValidationErrors = {}
+
     if (!otp.trim()) {
-      setMessage('Please enter the 6-digit verification code.')
-      return
+      newErrors.otp = 'Please enter the 6-digit verification code.'
+    } else if (!/^\d{6}$/.test(otp.trim())) {
+      newErrors.otp = 'Verification code must be exactly 6 digits.'
     }
 
-    if (!/^\d{6}$/.test(otp.trim())) {
-      setMessage('Verification code must be exactly 6 digits.')
+    setErrors(newErrors)
+    if (Object.keys(newErrors).length > 0) {
       return
     }
 
@@ -107,6 +197,7 @@ export default function CreateProfilePage() {
       setOtp('')
       setOtpExpiresAt('')
       setOtpRequested(false)
+      setErrors({})
 
       if (redirectTimeoutRef.current) {
         window.clearTimeout(redirectTimeoutRef.current)
@@ -165,8 +256,15 @@ export default function CreateProfilePage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={otpRequested || isSubmitting}
-              className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
+              className={`w-full h-12 sm:h-16 rounded-2xl border-4 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 ${
+                errors.username
+                  ? 'border-red-600 bg-red-100 focus:ring-red-400'
+                  : 'border-violet-700 bg-violet-100 focus:ring-violet-400'
+              }`}
             />
+            {errors.username && (
+              <p className="mt-1 text-red-700 text-sm font-semibold">{errors.username}</p>
+            )}
           </div>
 
           <div>
@@ -176,8 +274,15 @@ export default function CreateProfilePage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={otpRequested || isSubmitting}
-              className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
+              className={`w-full h-12 sm:h-16 rounded-2xl border-4 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 ${
+                errors.email
+                  ? 'border-red-600 bg-red-100 focus:ring-red-400'
+                  : 'border-violet-700 bg-violet-100 focus:ring-violet-400'
+              }`}
             />
+            {errors.email && (
+              <p className="mt-1 text-red-700 text-sm font-semibold">{errors.email}</p>
+            )}
           </div>
 
           <div>
@@ -187,8 +292,57 @@ export default function CreateProfilePage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={otpRequested || isSubmitting}
-              className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
+              className={`w-full h-12 sm:h-16 rounded-2xl border-4 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 ${
+                errors.password
+                  ? 'border-red-600 bg-red-100 focus:ring-red-400'
+                  : 'border-violet-700 bg-violet-100 focus:ring-violet-400'
+              }`}
             />
+            {errors.password && (
+              <p className="mt-1 text-red-700 text-sm font-semibold">{errors.password}</p>
+            )}
+
+            {password && !otpRequested && (() => {
+              const { strength, score } = getPasswordStrength(password)
+              const strengthColors = {
+                weak: 'bg-red-500',
+                fair: 'bg-yellow-500',
+                good: 'bg-blue-500',
+                strong: 'bg-green-500'
+              }
+              const strengthLabels = {
+                weak: 'Weak',
+                fair: 'Fair',
+                good: 'Good',
+                strong: 'Strong'
+              }
+              const maxScore = 9
+
+              return (
+                <div className="mt-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-violet-800 text-sm font-semibold">Strength:</span>
+                    <div className="flex-1 h-2 bg-violet-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${strengthColors[strength]} transition-all duration-300`}
+                        style={{ width: `${(score / maxScore) * 100}%` }}
+                      />
+                    </div>
+                    <span className={`text-sm font-semibold ${
+                      strength === 'weak' ? 'text-red-600' :
+                      strength === 'fair' ? 'text-yellow-600' :
+                      strength === 'good' ? 'text-blue-600' :
+                      'text-green-600'
+                    }`}>
+                      {strengthLabels[strength]}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-violet-700 text-xs">
+                    Tip: Use uppercase, lowercase, numbers, and special characters for stronger security.
+                  </p>
+                </div>
+              )
+            })()}
           </div>
 
           <div>
@@ -229,8 +383,15 @@ export default function CreateProfilePage() {
                 maxLength={6}
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full h-12 sm:h-16 rounded-2xl border-4 border-violet-700 bg-violet-100 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-violet-400"
+                className={`w-full h-12 sm:h-16 rounded-2xl border-4 px-4 text-violet-800 text-base sm:text-xl focus:outline-none focus:ring-2 ${
+                  errors.otp
+                    ? 'border-red-600 bg-red-100 focus:ring-red-400'
+                    : 'border-violet-700 bg-violet-100 focus:ring-violet-400'
+                }`}
               />
+              {errors.otp && (
+                <p className="mt-1 text-red-700 text-sm font-semibold">{errors.otp}</p>
+              )}
               {otpExpiresAt && (
                 <p className="mt-2 text-violet-900 text-sm sm:text-base font-semibold">
                   Code expires at {new Date(otpExpiresAt).toLocaleString()}.
@@ -241,8 +402,12 @@ export default function CreateProfilePage() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full h-12 sm:h-16 mt-4 rounded-2xl border-4 border-violet-700 bg-violet-300 text-violet-800 text-lg sm:text-3xl font-extrabold"
+            disabled={isSubmitting || (!otpRequested && Object.keys(errors).length > 0)}
+            className={`w-full h-12 sm:h-16 mt-4 rounded-2xl border-4 border-violet-700 text-violet-800 text-lg sm:text-3xl font-extrabold ${
+              isSubmitting || (!otpRequested && Object.keys(errors).length > 0)
+                ? 'bg-gray-300 cursor-not-allowed opacity-60'
+                : 'bg-violet-300'
+            }`}
           >
             {!otpRequested
               ? isSubmitting
