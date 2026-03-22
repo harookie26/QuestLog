@@ -3,6 +3,14 @@ import Message from '../../../lib/models/Message.js';
 import Thread from '../../../lib/models/Thread.js';
 import mongoose from 'mongoose';
 
+function normalizeUser(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getCurrentUser(req) {
+  return normalizeUser(req?.body?.currentUser || req?.query?.currentUser || '');
+}
+
 export default async function handler(req, res) {
   try {
     await connect();
@@ -61,6 +69,64 @@ export default async function handler(req, res) {
     }
   }
 
-  res.setHeader('Allow', ['GET', 'POST']);
+  if (req.method === 'PUT') {
+    try {
+      const messageId = String(req?.query?.messageId || req?.body?.messageId || '').trim();
+      if (!messageId) return res.status(400).json({ error: 'messageId is required' });
+
+      const body = String(req?.body?.body || '').trim();
+      if (!body) return res.status(400).json({ error: 'body is required' });
+
+      const currentUser = getCurrentUser(req);
+      if (!currentUser) return res.status(401).json({ error: 'currentUser is required' });
+
+      const msg = await Message.findById(messageId).lean();
+      if (!msg) return res.status(404).json({ error: 'Message not found' });
+
+      const owner = normalizeUser(msg.author);
+      if (!owner || owner !== currentUser) {
+        return res.status(403).json({ error: 'Only the reply owner can edit this reply' });
+      }
+
+      const updated = await Message.findByIdAndUpdate(
+        messageId,
+        { body },
+        { new: true }
+      )
+        .select('_id thread threadId body author createdAt')
+        .lean();
+
+      return res.status(200).json(updated);
+    } catch (err) {
+      console.error('PUT messages error', err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  if (req.method === 'DELETE') {
+    try {
+      const messageId = String(req?.query?.messageId || req?.body?.messageId || '').trim();
+      if (!messageId) return res.status(400).json({ error: 'messageId is required' });
+
+      const currentUser = getCurrentUser(req);
+      if (!currentUser) return res.status(401).json({ error: 'currentUser is required' });
+
+      const msg = await Message.findById(messageId).lean();
+      if (!msg) return res.status(404).json({ error: 'Message not found' });
+
+      const owner = normalizeUser(msg.author);
+      if (!owner || owner !== currentUser) {
+        return res.status(403).json({ error: 'Only the reply owner can delete this reply' });
+      }
+
+      await Message.findByIdAndDelete(messageId);
+      return res.status(204).end();
+    } catch (err) {
+      console.error('DELETE messages error', err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }
