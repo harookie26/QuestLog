@@ -175,6 +175,16 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    </div>
-  )
+        {/* Edit modal */}
+        <EditProfileModal
+          open={editing}
+          onClose={() => setEditing(false)}
+          onSaved={(updated) => {
+            setUser(updated)
+            const keepSignedIn = typeof window !== 'undefined' && localStorage.getItem('questlog-auth') === 'true'
+            saveAuth(updated, keepSignedIn)
+          }}
+        />
+      </div>
+    )
 }
