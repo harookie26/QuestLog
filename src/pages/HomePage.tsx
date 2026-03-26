@@ -36,7 +36,7 @@ const CardItem = ({title, subtitle, img, type, to}:{title:string; subtitle:strin
 
 export default function HomePage(){
   type Thread = { _id?: string; title: string; game?: string; platform?: string }
-  const [popularTopics, setPopularTopics] = useState<Thread[]>([])
+  const [popularTopics, setPopularTopics] = useState<Thread[] | null>(null)
   const [recentThreads, setRecentThreads] = useState<Thread[] | null>(null)
   const [showNew, setShowNew] = useState(false)
 
@@ -168,22 +168,25 @@ export default function HomePage(){
       <section className="mb-6">
         <h2 className="text-xl font-bold text-violet-900 mb-2">Recent Threads</h2>
         <div className="border-t border-violet-300">
-          {popularTopics.length === 0 ? (
-            // placeholder while loading or if none
-            [1,2,3].map((n) => (
-              <CardItem key={n} title={`Loading...`} subtitle={``} />
-            ))
-          ) : (
-            popularTopics.slice(0,5).map((t) => (
-              <CardItem
-                key={t._id || t.title}
-                title={t.title}
-                subtitle={t.game || t.platform || ''}
-                type="topic"
-                to={`/threads/inside/${t._id ?? ''}`}
-              />
-            ))
-          )}
+            {popularTopics === null ? (
+              [1,2,3].map((n) => (
+                <CardItem key={n} title={`Loading...`} subtitle={``} />
+              ))
+            ) : popularTopics.length === 0 ? (
+              [1,2,3].map((n) => (
+                <CardItem key={n} title={`No threads`} subtitle={``} />
+              ))
+            ) : (
+              popularTopics.slice(0,5).map((t) => (
+                <CardItem
+                  key={t._id || t.title}
+                  title={t.title}
+                  subtitle={t.game || t.platform || ''}
+                  type="topic"
+                  to={`/threads/inside/${t._id ?? ''}`}
+                />
+              ))
+            )}
         </div>
       </section>
 
