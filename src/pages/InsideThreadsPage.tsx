@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import { getStoredUser } from '../js/auth'
 
 const CATEGORY_OPTIONS = ['Recommendation', 'Question', 'Bug Report'] as const
@@ -272,14 +272,47 @@ export default function InsideThreadsPage(){
             <div className="text-sm text-violet-700">{thread?.game} <span className="text-violet-500">{thread?.platform}</span></div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {thread?.category ? (
-                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-violet-200 text-violet-900 border border-violet-300">
+                <button
+                  onClick={async () => {
+                    const stored = getStoredUser<{ username?: string }>()
+                    if (stored?.username) {
+                      try {
+                        await fetch('/api/users/interaction', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ currentUser: stored.username, type: 'category', name: thread.category })
+                        })
+                      } catch (err) {
+                        // ignore
+                      }
+                    }
+                  }}
+                  className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-violet-200 text-violet-900 border border-violet-300"
+                >
                   {thread.category}
-                </span>
+                </button>
               ) : null}
               {(thread?.tags || []).map(tag => (
-                <span key={tag} className="inline-flex items-center px-2 py-1 rounded text-xs bg-white text-violet-800 border border-violet-200">
+                <button
+                  key={tag}
+                  onClick={async () => {
+                    const stored = getStoredUser<{ username?: string }>()
+                    if (stored?.username) {
+                      try {
+                        await fetch('/api/users/interaction', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ currentUser: stored.username, type: 'tag', name: tag })
+                        })
+                      } catch (err) {
+                        // ignore
+                      }
+                    }
+                  }}
+                  className="inline-flex items-center px-2 py-1 rounded text-xs bg-white text-violet-800 border border-violet-200 hover:bg-violet-50"
+                >
                   #{tag}
-                </span>
+                </button>
               ))}
             </div>
           </div>
@@ -306,9 +339,13 @@ export default function InsideThreadsPage(){
           <article className={`p-4 rounded border border-violet-200 bg-violet-50`}>
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
-                <div className="text-sm text-violet-700 font-medium">{thread.author ?? 'OP'}</div>
-                <div className="text-xs text-violet-500">posted</div>
-              </div>
+                  {thread.author ? (
+                    <Link to={`/users/${encodeURIComponent(thread.author)}`} className="text-sm text-violet-700 font-medium hover:underline">{thread.author}</Link>
+                  ) : (
+                    <div className="text-sm text-violet-700 font-medium">OP</div>
+                  )}
+                  <div className="text-xs text-violet-500">posted</div>
+                </div>
               <div className="flex items-center gap-2">
                 {thread.createdAt ? <div className="text-xs text-violet-500">{new Date(thread.createdAt).toLocaleString()}</div> : null}
                 {isThreadOwner && !isEditingThread ? (
@@ -383,7 +420,13 @@ export default function InsideThreadsPage(){
             <article key={m._id || `${m.author || 'anon'}-${idx}`} className="p-4 rounded border border-violet-100 bg-white">
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
-                  <div className="text-sm text-violet-700 font-medium">{m.author ?? 'Anonymous'}</div>
+                  <div className="text-sm text-violet-700 font-medium">
+                    {m.author ? (
+                      <Link to={`/users/${encodeURIComponent(m.author)}`} className="hover:underline">{m.author}</Link>
+                    ) : (
+                      'Anonymous'
+                    )}
+                  </div>
                   <div className="text-xs text-violet-500">replied</div>
                 </div>
                 <div className="flex items-center gap-2">
