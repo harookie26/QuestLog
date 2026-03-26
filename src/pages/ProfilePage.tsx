@@ -87,14 +87,6 @@ export default function ProfilePage() {
                 <div>
                   <div className="text-2xl">{user?.threadsJoined || 0}</div>
                   <div className="text-xs text-violet-600">Threads Joined</div>
-
-              return (
-                <>
-                  {/* existing render */}
-                  { /* The page above already returns JSX; this return is for modal only */ }
-                  <EditProfileModal open={editing} onClose={() => setEditing(false)} onSaved={(updated) => { setUser(updated); const keepSignedIn = typeof window !== 'undefined' && localStorage.getItem('questlog-auth') === 'true'; saveAuth(updated, keepSignedIn) }} />
-                </>
-              )
                 </div>
                 <div>
                   <div className="text-2xl">{user?.threadsStarted || 0}</div>
@@ -131,7 +123,7 @@ export default function ProfilePage() {
             <h2 className="text-xl font-semibold text-violet-800">Personal Information</h2>
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-violet-900">
               <div><span className="font-semibold">NAME:</span> {user?.name || user?.displayName || '-'}</div>
-              <div><span className="font-semibold">BIRTHDAY:</span> {user?.birthday || '-'}</div>
+              <div><span className="font-semibold">BIRTHDAY:</span> {user?.birthdate ? new Date(user.birthdate).toLocaleDateString() : '-'}</div>
               <div><span className="font-semibold">GENDER:</span> {user?.gender || '-'}</div>
               <div><span className="font-semibold">ADDRESS:</span> {user?.address || '-'}</div>
               <div><span className="font-semibold">EMAIL:</span> {user?.email || '-'}</div>
