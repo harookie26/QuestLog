@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getStoredUser } from '../js/auth'
+import { getStoredUser, saveAuth } from '../js/auth'
+import EditProfileModal from '../components/EditProfileModal'
 
 type TagCount = { name: string; count: number }
 
@@ -16,7 +17,9 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       try {
         setLoading(true)
-        const res = await fetch('/api/users/profile')
+        const id = u?._id
+        if (!id) return
+        const res = await fetch(`/api/users/profile?id=${encodeURIComponent(id)}`)
         if (res.ok) {
           const data = await res.json()
           setUser(data)
@@ -49,6 +52,8 @@ export default function ProfilePage() {
       .slice(0, 8)
   }, [user])
 
+  const [editing, setEditing] = useState(false)
+
   if (!user && !loading) {
     return (
       <div className="max-w-6xl mx-auto p-8 text-center">
@@ -65,10 +70,10 @@ export default function ProfilePage() {
             <div className="flex items-center gap-4">
               <div className="w-32 h-32 rounded-xl bg-violet-100 overflow-hidden flex items-center justify-center text-4xl text-violet-800">{(user && user.username ? user.username.charAt(0).toUpperCase() : 'G')}</div>
               <div>
-                <div className="text-3xl font-bold text-violet-800">{user?.displayName || user?.username || user?.email || 'GUEST'}</div>
+                  <div className="text-3xl font-bold text-violet-800">{user?.displayName || user?.username || user?.email || 'GUEST'}</div>
                 <div className="text-sm text-violet-700">@{user?.username || (user?.email || '').split('@')[0]}</div>
                 <div className="mt-3 flex gap-2">
-                  <button className="px-4 py-2 rounded bg-violet-100 border border-violet-300 text-violet-800">EDIT PROFILE</button>
+                  <button onClick={() => setEditing(true)} className="px-4 py-2 rounded bg-violet-100 border border-violet-300 text-violet-800">EDIT PROFILE</button>
                   <button className="px-4 py-2 rounded bg-white border border-violet-300 text-violet-800">SHARE PROFILE</button>
                 </div>
                 <div className="mt-3">
@@ -82,6 +87,14 @@ export default function ProfilePage() {
                 <div>
                   <div className="text-2xl">{user?.threadsJoined || 0}</div>
                   <div className="text-xs text-violet-600">Threads Joined</div>
+
+              return (
+                <>
+                  {/* existing render */}
+                  { /* The page above already returns JSX; this return is for modal only */ }
+                  <EditProfileModal open={editing} onClose={() => setEditing(false)} onSaved={(updated) => { setUser(updated); const keepSignedIn = typeof window !== 'undefined' && localStorage.getItem('questlog-auth') === 'true'; saveAuth(updated, keepSignedIn) }} />
+                </>
+              )
                 </div>
                 <div>
                   <div className="text-2xl">{user?.threadsStarted || 0}</div>
