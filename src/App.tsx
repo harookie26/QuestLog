@@ -10,6 +10,7 @@ import LoginPage from './pages/LoginPage'
 import CreateProfilePage from './pages/CreateProfilePage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import ProfilePage from './pages/ProfilePage'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/react"
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/create-profile" element={<CreateProfilePage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="/threads" element={<ProtectedRoute><MainThreadsPage /></ProtectedRoute>} />
           <Route path="/threads/inside" element={<ProtectedRoute><InsideThreadsPage /></ProtectedRoute>} />
           <Route path="/threads/inside/:id" element={<ProtectedRoute><InsideThreadsPage /></ProtectedRoute>} />

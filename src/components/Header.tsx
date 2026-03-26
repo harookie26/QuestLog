@@ -247,7 +247,7 @@ export default function Header() {
               {showUserMenu && (
                 <div className="absolute right-0 top-11 w-40 bg-white border border-violet-200 rounded-md shadow-md z-50 py-1" role="menu" aria-label="Account menu">
                   <Link
-                    to="#"
+                    to="/profile"
                     onClick={() => setShowUserMenu(false)}
                     className="block w-full text-left px-3 py-2 text-sm text-violet-900 hover:bg-violet-50"
                     role="menuitem"
