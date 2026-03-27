@@ -5,9 +5,17 @@ import NewThread from '../components/NewThread'
 type CardType = 'game' | 'topic'
 
 const CardItem = ({title, subtitle, img, type, to}:{title:string; subtitle:string; img?:string; type?:CardType; to?:string}) => {
+  const makePlaceholder = (txt?: string) => {
+    if (!txt) return 'https://via.placeholder.com/48'
+    const label = encodeURIComponent(String(txt).slice(0, 2))
+    return `https://via.placeholder.com/48?text=${label}`
+  }
+
+  const imgSrc = img || makePlaceholder(subtitle || title)
+
   const content = (
     <div className="flex items-start gap-4 p-3 bg-violet-100/80 border-b border-violet-200">
-      <img src={img || 'https://via.placeholder.com/48'} alt="thumb" className="w-12 h-12 object-cover rounded-sm" />
+      <img src={imgSrc} alt="thumb" className="w-12 h-12 object-cover rounded-sm" />
       <div>
         <div className="font-semibold text-violet-900">{title}</div>
         <div className="text-xs text-violet-700">{subtitle}</div>
