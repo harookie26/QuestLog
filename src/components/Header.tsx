@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Home, List, Gamepad, Server } from 'lucide-react'
+import { Home, Info, Gamepad, Server } from 'lucide-react'
 import { clearAuth, getStoredUser } from '../js/auth'
 
 export default function Header() {
@@ -171,8 +171,8 @@ export default function Header() {
                        HOME
                      </Link>
                      <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center" to="#">
-                       <List className="w-4 h-4 mr-2 text-violet-900" aria-hidden="true" />
-                       BOARDS
+                       <Info className="w-4 h-4 mr-2 text-violet-900" aria-hidden="true" />
+                       ABOUT
                      </Link>
                      <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center" to="/games">
                        <Gamepad className="w-4 h-4 mr-2 text-violet-900" aria-hidden="true" />
@@ -276,7 +276,7 @@ export default function Header() {
               <Home className="w-5 h-5 mr-3" /> HOME
             </Link>
             <Link className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="#">
-              <List className="w-5 h-5 mr-3" /> BOARDS
+              <Info className="w-5 h-5 mr-3" /> ABOUT
             </Link>
             <Link className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="/games">
               <Gamepad className="w-5 h-5 mr-3" /> GAMES
@@ -297,7 +297,7 @@ export default function Header() {
                 <Home className="w-5 h-5 mr-3" /> HOME
               </Link>
               <Link onClick={() => setIsOpen(false)} className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="#">
-                <List className="w-5 h-5 mr-3" /> BOARDS
+                <Info className="w-5 h-5 mr-3" /> ABOUT
               </Link>
               <Link onClick={() => setIsOpen(false)} className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="/games">
                 <Gamepad className="w-5 h-5 mr-3" /> GAMES
