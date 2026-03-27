@@ -36,7 +36,7 @@ export default function ResetPasswordPage() {
             Reset Session Missing
           </h1>
           <p className="mt-4 text-violet-900 text-base sm:text-xl font-semibold text-center">
-            Please request and verify a password reset code first.
+            Please start a password reset request first.
           </p>
           <div className="mt-8 text-center">
             <Link to="/forgot-password" className="text-violet-800 underline text-sm sm:text-2xl">

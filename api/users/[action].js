@@ -2,22 +2,13 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { connect } from '../../lib/db.js';
 import User from '../../lib/models/User.js';
-import PendingSignup from '../../lib/models/PendingSignup.js';
 import PendingPasswordReset from '../../lib/models/PendingPasswordReset.js';
-import { sendPasswordResetOtpEmail, sendSignupOtpEmail } from '../../lib/otpEmail.js';
 
-const OTP_EXPIRY_MINUTES = 10;
-const OTP_EXPIRY_MS = OTP_EXPIRY_MINUTES * 60 * 1000;
-const MAX_OTP_ATTEMPTS = 5;
 const RESET_TOKEN_EXPIRY_MINUTES = 10;
 const RESET_TOKEN_EXPIRY_MS = RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000;
 
 function toCaseInsensitiveExactRegex(value) {
   return new RegExp(`^${String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
-}
-
-function generateSixDigitOtp() {
-  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 function sha256(value) {
@@ -28,10 +19,6 @@ function getAction(req) {
   const raw = req?.query?.action;
   if (Array.isArray(raw)) return String(raw[0] || '').trim();
   return String(raw || '').trim();
-}
-
-function requireStrictEmailDelivery() {
-  return process.env.VERCEL_ENV === 'production' || process.env.STRICT_EMAIL_DELIVERY === 'true';
 }
 
 async function handleLogin(req, res) {
@@ -66,7 +53,7 @@ async function handleLogin(req, res) {
   });
 }
 
-async function handleSendOtp(req, res) {
+async function handleSignup(req, res) {
   const { username, email, password, birthdate, gender } = req.body || {};
 
   if (!username || !String(username).trim()) return res.status(400).send('username is required');
@@ -95,116 +82,21 @@ async function handleSendOtp(req, res) {
     }
   }
 
-  const otpCode = generateSixDigitOtp();
-  const otpHash = await bcrypt.hash(otpCode, 10);
   const hashedPassword = await bcrypt.hash(String(password), 10);
-  const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
-
-  await PendingSignup.updateOne(
-    { email: cleanEmail },
-    {
-      $set: {
-        username: cleanUsername,
-        email: cleanEmail,
-        password: hashedPassword,
-        birthdate: parsedBirthdate,
-        gender: gender ? String(gender) : undefined,
-        otpHash,
-        otpExpiresAt,
-        failedAttempts: 0,
-        updatedAt: new Date()
-      },
-      $setOnInsert: {
-        createdAt: new Date()
-      }
-    },
-    { upsert: true }
-  );
-
-  const emailResult = await sendSignupOtpEmail({
-    toEmail: cleanEmail,
-    otpCode,
-    expiresMinutes: OTP_EXPIRY_MINUTES
-  });
-
-  const payload = {
-    message: 'Verification code sent',
-    expiresAt: otpExpiresAt
-  };
-
-  if (!emailResult.delivered && requireStrictEmailDelivery()) {
-    return res.status(503).send('Email delivery failed. Please verify SMTP configuration and provider limits.');
-  }
-
-  if (!emailResult.delivered && !requireStrictEmailDelivery()) {
-    payload.devOtp = otpCode;
-    payload.note = `Email delivery failed (${emailResult.reason || 'unknown'}). Use devOtp for local testing.`;
-  }
-
-  return res.status(200).json(payload);
-}
-
-async function handleVerifyOtp(req, res) {
-  const { email, otp } = req.body || {};
-
-  if (!email || !String(email).trim()) return res.status(400).send('email is required');
-  if (!otp || !String(otp).trim()) return res.status(400).send('otp is required');
-
-  const cleanEmail = String(email).trim().toLowerCase();
-  const cleanOtp = String(otp).trim();
-
-  if (!/^\d{6}$/.test(cleanOtp)) {
-    return res.status(400).send('otp must be a 6-digit code');
-  }
-
-  const pending = await PendingSignup.findOne({ email: toCaseInsensitiveExactRegex(cleanEmail) });
-
-  if (!pending) {
-    return res.status(404).send('No pending signup found. Request a new code.');
-  }
-
-  if (pending.otpExpiresAt.getTime() < Date.now()) {
-    await PendingSignup.deleteOne({ _id: pending._id });
-    return res.status(400).send('Verification code expired. Request a new code.');
-  }
-
-  if (pending.failedAttempts >= MAX_OTP_ATTEMPTS) {
-    await PendingSignup.deleteOne({ _id: pending._id });
-    return res.status(429).send('Too many failed attempts. Request a new code.');
-  }
-
-  const otpMatches = await bcrypt.compare(cleanOtp, pending.otpHash);
-  if (!otpMatches) {
-    await PendingSignup.updateOne({ _id: pending._id }, { $inc: { failedAttempts: 1 }, $set: { updatedAt: new Date() } });
-    return res.status(401).send('Invalid verification code');
-  }
-
-  const existingUser = await User.findOne({
-    $or: [
-      { username: toCaseInsensitiveExactRegex(pending.username) },
-      { email: toCaseInsensitiveExactRegex(cleanEmail) }
-    ]
-  }).lean();
-
-  if (existingUser) {
-    await PendingSignup.deleteOne({ _id: pending._id });
-    return res.status(409).send('username or email already exists');
-  }
-
   const userToInsert = {
-    username: pending.username,
+    username: cleanUsername,
     email: cleanEmail,
-    password: pending.password,
+    password: hashedPassword,
     role: 'Member',
-    birthdate: pending.birthdate,
-    gender: pending.gender,
+    birthdate: parsedBirthdate,
+    gender: gender ? String(gender) : undefined,
     createdAt: new Date()
   };
 
   const created = await User.collection.insertOne(userToInsert);
-  await PendingSignup.deleteOne({ _id: pending._id });
 
   return res.status(201).json({
+    message: 'Profile created successfully',
     _id: created.insertedId.toString(),
     username: userToInsert.username,
     email: userToInsert.email,
@@ -229,9 +121,8 @@ async function handleRequestPasswordReset(req, res) {
     return res.status(404).send('No account found for this email.');
   }
 
-  const otpCode = generateSixDigitOtp();
-  const otpHash = await bcrypt.hash(otpCode, 10);
-  const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const resetTokenExpiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
 
   await PendingPasswordReset.updateOne(
     { email: cleanEmail },
@@ -239,15 +130,10 @@ async function handleRequestPasswordReset(req, res) {
       $set: {
         userId: user._id,
         email: cleanEmail,
-        otpHash,
-        otpExpiresAt,
-        failedAttempts: 0,
-        expiresAt: otpExpiresAt,
+        resetTokenHash: sha256(resetToken),
+        resetTokenExpiresAt,
+        expiresAt: resetTokenExpiresAt,
         updatedAt: new Date()
-      },
-      $unset: {
-        resetTokenHash: 1,
-        resetTokenExpiresAt: 1
       },
       $setOnInsert: {
         createdAt: new Date()
@@ -256,84 +142,8 @@ async function handleRequestPasswordReset(req, res) {
     { upsert: true }
   );
 
-  const emailResult = await sendPasswordResetOtpEmail({
-    toEmail: cleanEmail,
-    otpCode,
-    expiresMinutes: OTP_EXPIRY_MINUTES
-  });
-
-  const payload = {
-    message: 'Password reset code sent',
-    expiresAt: otpExpiresAt
-  };
-
-  if (!emailResult.delivered && requireStrictEmailDelivery()) {
-    return res.status(503).send('Email delivery failed. Please verify SMTP configuration and provider limits.');
-  }
-
-  if (!emailResult.delivered && !requireStrictEmailDelivery()) {
-    payload.devOtp = otpCode;
-    payload.note = `Email delivery failed (${emailResult.reason || 'unknown'}). Use devOtp for local testing.`;
-  }
-
-  return res.status(200).json(payload);
-}
-
-async function handleVerifyPasswordResetOtp(req, res) {
-  const { email, otp } = req.body || {};
-
-  if (!email || !String(email).trim()) return res.status(400).send('email is required');
-  if (!otp || !String(otp).trim()) return res.status(400).send('otp is required');
-
-  const cleanEmail = String(email).trim().toLowerCase();
-  const cleanOtp = String(otp).trim();
-
-  if (!/^\d{6}$/.test(cleanOtp)) {
-    return res.status(400).send('otp must be a 6-digit code');
-  }
-
-  const pending = await PendingPasswordReset.findOne({ email: toCaseInsensitiveExactRegex(cleanEmail) });
-
-  if (!pending) {
-    return res.status(404).send('No pending password reset found. Request a new code.');
-  }
-
-  if (pending.otpExpiresAt.getTime() < Date.now()) {
-    await PendingPasswordReset.deleteOne({ _id: pending._id });
-    return res.status(400).send('Verification code expired. Request a new code.');
-  }
-
-  if (pending.failedAttempts >= MAX_OTP_ATTEMPTS) {
-    await PendingPasswordReset.deleteOne({ _id: pending._id });
-    return res.status(429).send('Too many failed attempts. Request a new code.');
-  }
-
-  const otpMatches = await bcrypt.compare(cleanOtp, pending.otpHash);
-  if (!otpMatches) {
-    await PendingPasswordReset.updateOne(
-      { _id: pending._id },
-      { $inc: { failedAttempts: 1 }, $set: { updatedAt: new Date() } }
-    );
-    return res.status(401).send('Invalid verification code');
-  }
-
-  const resetToken = crypto.randomBytes(32).toString('hex');
-  const resetTokenExpiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
-
-  await PendingPasswordReset.updateOne(
-    { _id: pending._id },
-    {
-      $set: {
-        resetTokenHash: sha256(resetToken),
-        resetTokenExpiresAt,
-        expiresAt: resetTokenExpiresAt,
-        updatedAt: new Date()
-      }
-    }
-  );
-
   return res.status(200).json({
-    message: 'Verification successful',
+    message: 'Password reset session started',
     email: cleanEmail,
     resetToken,
     resetTokenExpiresAt
@@ -413,10 +223,8 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'login') return await handleLogin(req, res);
-    if (action === 'send-otp') return await handleSendOtp(req, res);
-    if (action === 'verify-otp') return await handleVerifyOtp(req, res);
+    if (action === 'signup') return await handleSignup(req, res);
     if (action === 'request-password-reset') return await handleRequestPasswordReset(req, res);
-    if (action === 'verify-password-reset-otp') return await handleVerifyPasswordResetOtp(req, res);
     if (action === 'reset-password') return await handleResetPassword(req, res);
     return res.status(404).json({ error: 'Not found' });
   } catch (err) {
