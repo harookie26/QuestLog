@@ -15,21 +15,52 @@ import UserProfilePage from './pages/UserProfilePage'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/react"
-import { isAuthenticated as hasAuth } from './js/auth'
+import { fetchSessionUser, getStoredUser } from './js/auth'
 
 export default function App() {
   const location = useLocation()
+  const [isAuthLoading, setIsAuthLoading] = React.useState(true)
+  const [currentUser, setCurrentUser] = React.useState<any | null>(() => getStoredUser<any>())
+
+  React.useEffect(() => {
+    let isMounted = true
+
+    const syncSession = async () => {
+      setIsAuthLoading(true)
+      const user = await fetchSessionUser<any>()
+      if (isMounted) {
+        setCurrentUser(user)
+        setIsAuthLoading(false)
+      }
+    }
+
+    syncSession()
+
+    return () => {
+      isMounted = false
+    }
+  }, [location.pathname])
+
   const isAuthPage =
     location.pathname === '/login' ||
     location.pathname === '/create-profile' ||
     location.pathname === '/forgot-password' ||
     location.pathname === '/reset-password'
-  const isAuthenticated = hasAuth()
+  const isAuthenticated = Boolean(currentUser)
   const showAppShell = !isAuthPage && isAuthenticated
 
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    if (isAuthLoading) return null
     if (!isAuthenticated) return <Navigate to="/login" replace />
     return <>{children}</>
+  }
+
+  if (!isAuthPage && isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-violet-800 font-semibold">
+        Restoring session...
+      </div>
+    )
   }
 
   return (

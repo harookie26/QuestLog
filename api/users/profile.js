@@ -2,6 +2,7 @@ import { connect } from '../../lib/db.js'
 import User from '../../lib/models/User.js'
 import Thread from '../../lib/models/Thread.js'
 import Message from '../../lib/models/Message.js'
+import { getSessionUser } from '../../lib/auth/session.js'
 
 const ROLE_ADMINISTRATOR = 'Administrator'
 
@@ -15,6 +16,19 @@ function normalizeRole(value) {
 
 function toCaseInsensitiveExactRegex(value) {
   return new RegExp(`^${String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+}
+
+async function getSessionActor(req) {
+  const sessionUser = getSessionUser(req)
+  if (!sessionUser || !sessionUser._id) return null
+
+  const actor = await User.findById(sessionUser._id).select('username role').lean()
+  if (!actor) return null
+
+  return {
+    username: String(actor.username || '').trim(),
+    role: normalizeRole(actor.role)
+  }
 }
 
 export default async function handler(req, res) {
@@ -46,11 +60,8 @@ export default async function handler(req, res) {
       const { _id } = body
       if (!_id) return res.status(400).send('_id is required')
 
-      const currentUser = (body.currentUser || req.query?.currentUser || '').toString().trim()
-      if (!currentUser) return res.status(401).send('currentUser is required')
-
-      const actor = await User.findOne({ username: toCaseInsensitiveExactRegex(currentUser) }).select('username role').lean()
-      if (!actor) return res.status(401).send('currentUser is required')
+      const actor = await getSessionActor(req)
+      if (!actor) return res.status(401).send('Not authenticated')
 
       const target = await User.findById(_id).lean()
       if (!target) return res.status(404).send('User not found')
@@ -89,11 +100,8 @@ export default async function handler(req, res) {
       const id = body._id || req.query?.id || req.query?._id
       if (!id) return res.status(400).send('_id is required')
 
-      const currentUser = (body.currentUser || req.query?.currentUser || '').toString().trim()
-      if (!currentUser) return res.status(401).send('currentUser is required')
-
-      const actor = await User.findOne({ username: toCaseInsensitiveExactRegex(currentUser) }).select('username role').lean()
-      if (!actor) return res.status(401).send('currentUser is required')
+      const actor = await getSessionActor(req)
+      if (!actor) return res.status(401).send('Not authenticated')
 
       const target = await User.findById(id).lean()
       if (!target) return res.status(404).send('User not found')

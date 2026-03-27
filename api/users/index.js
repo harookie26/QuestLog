@@ -8,7 +8,8 @@ export default async function handler(req, res) {
       'login',
       'signup',
       'request-password-reset',
-      'reset-password'
+      'reset-password',
+      'logout'
     ]);
 
     // If route already resolved an explicit action (e.g. /api/users/signup), honor it.
@@ -67,6 +68,17 @@ export default async function handler(req, res) {
       req.query = {
         ...(req.query || {}),
         action: 'signup'
+      };
+    }
+  }
+
+  if (req.method === 'GET') {
+    const rawAction = Array.isArray(req?.query?.action) ? req.query.action[0] : req?.query?.action;
+    const explicitAction = String(rawAction || '').trim();
+    if (explicitAction === 'me') {
+      req.query = {
+        ...(req.query || {}),
+        action: 'me'
       };
     }
   }

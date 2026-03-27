@@ -92,12 +92,50 @@ For production backend deployment:
 |----------|----------|-------------|
 | `MONGODB_URI` | Yes | MongoDB connection string |
 | `NODE_ENV` | Yes | `development` or `production` |
+| `JWT_SECRET` (or `SESSION_SECRET`) | Yes (production) | Secret used to sign/verify session JWT cookies |
+| `SESSION_COOKIE_NAME` | No | Cookie name for auth session (default: `questlog_session`) |
+| `SESSION_TOKEN_TTL_SECONDS` | No | Session token TTL for non-persistent login (default: 8 hours) |
+| `SESSION_PERSISTENT_TOKEN_TTL_SECONDS` | No | Session token TTL for keep-signed-in login (default: 30 days) |
+| `CORS_ORIGIN` | Recommended | Allowed origin for cross-origin API calls when needed |
+
+### Session Security Notes
+
+- Do not deploy with the development fallback secret in `lib/auth/session.js`.
+- In production, set a strong `JWT_SECRET` (or `SESSION_SECRET`) in your hosting environment.
+- Auth uses an `HttpOnly` cookie, so the browser cannot read token contents from JavaScript.
 
 ## Authentication flow
 
-- Signup is immediate via `POST /api/users/signup`.
-- Password reset starts via `POST /api/users/request-password-reset`.
-- Reset completion uses `POST /api/users/reset-password` with the issued reset session token.
+This project now uses JWT-based session cookies for authentication.
+
+### Auth Endpoints
+
+- `POST /api/users/login`
+   - Validates credentials.
+   - Sets an `HttpOnly` session cookie.
+   - Accepts `keepSignedIn` in the request body to choose persistent vs session cookie behavior.
+- `GET /api/users/me`
+   - Returns the authenticated user from the session cookie.
+   - Returns `401` if not authenticated.
+- `POST /api/users/logout`
+   - Clears the session cookie.
+- `POST /api/users/signup`
+   - Creates a new account.
+- `POST /api/users/request-password-reset`
+   - Starts password reset flow and returns a reset token for the reset page flow.
+- `POST /api/users/reset-password`
+   - Completes password reset with the issued reset token.
+
+### Session Behavior
+
+- If `keepSignedIn` is `false`, login creates a session cookie (ends when browser session ends).
+- If `keepSignedIn` is `true`, login creates a persistent cookie using `SESSION_PERSISTENT_TOKEN_TTL_SECONDS`.
+- Frontend restores auth state via `GET /api/users/me` during app load.
+
+### Authorization Model
+
+- Protected write operations now derive identity from the verified session cookie.
+- API routes no longer trust client-supplied `currentUser`/`author` values for authorization decisions.
 
 # Project Structure
 

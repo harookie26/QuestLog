@@ -6,11 +6,10 @@ type Props = {
   onClose: () => void
   onSaved?: (user: any) => void
   targetUser?: any | null
-  currentUsername?: string
   persistAuth?: boolean
 }
 
-export default function EditProfileModal({ open, onClose, onSaved, targetUser = null, currentUsername = '', persistAuth = true }: Props) {
+export default function EditProfileModal({ open, onClose, onSaved, targetUser = null, persistAuth = true }: Props) {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState<any>({})
 
@@ -36,15 +35,11 @@ export default function EditProfileModal({ open, onClose, onSaved, targetUser = 
   const handleSave = async () => {
     setLoading(true)
     try {
-      const stored = getStoredUser<any>()
-      const actorUsername = (currentUsername || stored?.username || '').trim()
       const res = await fetch('/api/users/profile', {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          currentUser: actorUsername
-        })
+        body: JSON.stringify(form)
       })
       if (!res.ok) {
         const text = await res.text()

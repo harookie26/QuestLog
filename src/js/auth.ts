@@ -3,12 +3,19 @@ const USER_KEY = 'questlog-user'
 
 const hasWindow = () => typeof window !== 'undefined'
 
-const getActiveStorage = (): Storage | null => {
-  if (!hasWindow()) return null
+const getStoragePair = (): { active: Storage | null; fallback: Storage | null } => {
+  if (!hasWindow()) return { active: null, fallback: null }
 
-  if (localStorage.getItem(AUTH_KEY) === 'true') return localStorage
-  if (sessionStorage.getItem(AUTH_KEY) === 'true') return sessionStorage
-  return null
+  const localAuth = localStorage.getItem(AUTH_KEY) === 'true'
+  const sessionAuth = sessionStorage.getItem(AUTH_KEY) === 'true'
+
+  if (localAuth) return { active: localStorage, fallback: sessionStorage }
+  if (sessionAuth) return { active: sessionStorage, fallback: localStorage }
+
+  if (localStorage.getItem(USER_KEY)) return { active: localStorage, fallback: sessionStorage }
+  if (sessionStorage.getItem(USER_KEY)) return { active: sessionStorage, fallback: localStorage }
+
+  return { active: null, fallback: null }
 }
 
 export const isAuthenticated = (): boolean => {
@@ -17,10 +24,10 @@ export const isAuthenticated = (): boolean => {
 }
 
 export const getStoredUser = <T = unknown>(): T | null => {
-  const activeStorage = getActiveStorage()
-  if (!activeStorage) return null
+  const { active } = getStoragePair()
+  if (!active) return null
 
-  const raw = activeStorage.getItem(USER_KEY)
+  const raw = active.getItem(USER_KEY)
   if (!raw) return null
 
   try {
@@ -50,4 +57,44 @@ export const clearAuth = (): void => {
   localStorage.removeItem(USER_KEY)
   sessionStorage.removeItem(AUTH_KEY)
   sessionStorage.removeItem(USER_KEY)
+}
+
+export const fetchSessionUser = async <T = unknown>(): Promise<T | null> => {
+  try {
+    const res = await fetch('/api/users/me', {
+      method: 'GET',
+      credentials: 'include',
+      headers: { Accept: 'application/json' }
+    })
+
+    if (!res.ok) {
+      clearAuth()
+      return null
+    }
+
+    const user = (await res.json()) as T
+
+    const { active } = getStoragePair()
+    const keepSignedIn = active === localStorage
+    saveAuth(user, keepSignedIn)
+
+    return user
+  } catch {
+    clearAuth()
+    return null
+  }
+}
+
+export const logoutFromServer = async (): Promise<void> => {
+  try {
+    await fetch('/api/users/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    })
+  } catch {
+    // Ignore network errors and still clear local cache.
+  } finally {
+    clearAuth()
+  }
 }

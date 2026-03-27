@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Home, Info, Gamepad, Server } from 'lucide-react'
-import { clearAuth, getStoredUser } from '../js/auth'
+import { getStoredUser, logoutFromServer } from '../js/auth'
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
@@ -133,8 +133,8 @@ export default function Header() {
     }
   }, [searchQuery])
 
-  const handleLogout = () => {
-    clearAuth()
+  const handleLogout = async () => {
+    await logoutFromServer()
     setShowUserMenu(false)
     setDisplayName('GUEST')
     navigate('/login', { replace: true })

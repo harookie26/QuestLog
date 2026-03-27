@@ -57,10 +57,10 @@ export default function UserProfilePage() {
     try {
       const res = await fetch('/api/users/profile', {
         method: 'DELETE',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          _id: user._id,
-          currentUser: viewerUsername
+          _id: user._id
         })
       })
       if (!res.ok) {
@@ -183,7 +183,6 @@ export default function UserProfilePage() {
         open={editing}
         onClose={() => setEditing(false)}
         targetUser={user}
-        currentUsername={viewerUsername}
         persistAuth={false}
         onSaved={(updated) => {
           setUser(updated)

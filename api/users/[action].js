@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { connect } from '../../lib/db.js';
 import User from '../../lib/models/User.js';
 import PendingPasswordReset from '../../lib/models/PendingPasswordReset.js';
+import { clearSessionCookie, getSessionUser, setSessionCookie } from '../../lib/auth/session.js';
 
 const RESET_TOKEN_EXPIRY_MINUTES = 10;
 const RESET_TOKEN_EXPIRY_MS = RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000;
@@ -22,7 +23,7 @@ function getAction(req) {
 }
 
 async function handleLogin(req, res) {
-  const { identifier, password } = req.body || {};
+  const { identifier, password, keepSignedIn } = req.body || {};
 
   if (!identifier || !String(identifier).trim()) return res.status(400).send('username or email is required');
   if (!password || !String(password).trim()) return res.status(400).send('password is required');
@@ -45,12 +46,23 @@ async function handleLogin(req, res) {
     return res.status(401).send('Invalid credentials');
   }
 
-  return res.status(200).json({
-    _id: user._id.toString(),
-    username: user.username,
-    email: user.email,
-    role: user.role || 'Member'
-  });
+  const authUser = setSessionCookie(res, user, Boolean(keepSignedIn));
+
+  return res.status(200).json(authUser);
+}
+
+async function handleMe(req, res) {
+  const authUser = getSessionUser(req);
+  if (!authUser) {
+    return res.status(401).send('Not authenticated');
+  }
+
+  return res.status(200).json(authUser);
+}
+
+async function handleLogout(req, res) {
+  clearSessionCookie(res);
+  return res.status(200).json({ message: 'Logged out' });
 }
 
 async function handleSignup(req, res) {
@@ -200,15 +212,24 @@ async function handleResetPassword(req, res) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  const requestOrigin = req?.headers?.origin;
+  const corsOrigin = process.env.CORS_ORIGIN || requestOrigin || '*';
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
+  if (corsOrigin !== '*') {
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
   }
 
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST']);
+  const action = getAction(req);
+  const isGetMe = req.method === 'GET' && action === 'me';
+  const isAllowedPost = req.method === 'POST';
+
+  if (!isGetMe && !isAllowedPost) {
+    res.setHeader('Allow', ['GET', 'POST']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
@@ -219,9 +240,9 @@ export default async function handler(req, res) {
     return res.status(500).send('Database connection error');
   }
 
-  const action = getAction(req);
-
   try {
+    if (action === 'me') return await handleMe(req, res);
+    if (action === 'logout') return await handleLogout(req, res);
     if (action === 'login') return await handleLogin(req, res);
     if (action === 'signup') return await handleSignup(req, res);
     if (action === 'request-password-reset') return await handleRequestPasswordReset(req, res);

@@ -4,6 +4,7 @@ import Thread from '../../lib/models/Thread.js';
 import Message from '../../lib/models/Message.js';
 import Tag from '../../lib/models/Tag.js';
 import User from '../../lib/models/User.js';
+import { getSessionUser } from '../../lib/auth/session.js';
 
 const VALID_CATEGORIES = new Set(['Recommendation', 'Question', 'Bug Report']);
 const ROLE_ADMINISTRATOR = 'Administrator';
@@ -12,10 +13,6 @@ const ROLE_MEMBER = 'Member';
 
 function normalizeUser(value) {
   return String(value || '').trim().toLowerCase();
-}
-
-function getCurrentUser(req) {
-  return normalizeUser(req?.body?.currentUser || req?.query?.currentUser || '');
 }
 
 function toCaseInsensitiveExactRegex(value) {
@@ -28,15 +25,16 @@ function normalizeRole(value) {
 }
 
 async function getCurrentActor(req) {
-  const currentUser = getCurrentUser(req);
-  if (!currentUser) return null;
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser || !sessionUser._id) return null;
 
-  const user = await User.findOne({ username: toCaseInsensitiveExactRegex(currentUser) })
+  const user = await User.findById(sessionUser._id)
     .select('username role')
     .lean();
   if (!user) return null;
 
   return {
+    displayName: String(user.username || '').trim(),
     username: normalizeUser(user.username),
     role: normalizeRole(user.role)
   };
@@ -119,6 +117,9 @@ async function handleThreadsRoot(req, res) {
   }
 
   if (req.method === 'POST') {
+    const actor = await getCurrentActor(req);
+    if (!actor) return res.status(401).send('Not authenticated');
+
     if (!req.body || !req.body.title) return res.status(400).send('title is required');
     const category = normalizeCategory(req.body.category);
     if (!category) return res.status(400).send('category must be one of Recommendation, Question, or Bug Report');
@@ -130,7 +131,7 @@ async function handleThreadsRoot(req, res) {
       category,
       tags,
       body: req.body.body,
-      author: req.body.author || null,
+      author: actor.displayName || actor.username,
       createdAt: new Date()
     };
     await persistTags(tags);
@@ -158,7 +159,7 @@ async function handleThreadById(req, res, id) {
 
     const actor = await getCurrentActor(req);
     const owner = normalizeUser(thread.author);
-    if (!actor) return res.status(401).send('currentUser is required');
+    if (!actor) return res.status(401).send('Not authenticated');
     if (!owner || owner !== actor.username) return res.status(403).send('Only the thread owner can edit this thread');
 
     const payload = req.body || {};
@@ -193,7 +194,7 @@ async function handleThreadById(req, res, id) {
     if (!thread) return res.status(404).send('Not found');
 
     const actor = await getCurrentActor(req);
-    if (!actor) return res.status(401).send('currentUser is required');
+    if (!actor) return res.status(401).send('Not authenticated');
     if (actor.role !== ROLE_ADMINISTRATOR) return res.status(403).send('Only administrators can delete this thread');
 
     await Thread.findByIdAndDelete(id);
@@ -233,13 +234,20 @@ async function handleThreadMessages(req, res, id) {
   }
 
   if (req.method === 'POST') {
-    const { body, author } = req.body || {};
+    const actor = await getCurrentActor(req);
+    if (!actor) return res.status(401).json({ error: 'Not authenticated' });
+
+    const { body } = req.body || {};
     if (!body) return res.status(400).json({ error: 'Missing body' });
 
     const threadExists = await Thread.exists({ _id: id });
     if (!threadExists) return res.status(404).json({ error: 'Thread not found' });
 
-    const payload = { thread: mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id, body, author };
+    const payload = {
+      thread: mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id,
+      body,
+      author: actor.displayName || actor.username
+    };
     const createdDoc = await Message.create(payload);
     const created = {
       _id: createdDoc._id.toString(),
@@ -259,7 +267,7 @@ async function handleThreadMessages(req, res, id) {
     if (!body) return res.status(400).json({ error: 'body is required' });
 
     const actor = await getCurrentActor(req);
-    if (!actor) return res.status(401).json({ error: 'currentUser is required' });
+    if (!actor) return res.status(401).json({ error: 'Not authenticated' });
 
     const msg = await Message.findById(messageId).lean();
     if (!msg) return res.status(404).json({ error: 'Message not found' });
@@ -285,7 +293,7 @@ async function handleThreadMessages(req, res, id) {
     if (!messageId) return res.status(400).json({ error: 'messageId is required' });
 
     const actor = await getCurrentActor(req);
-    if (!actor) return res.status(401).json({ error: 'currentUser is required' });
+    if (!actor) return res.status(401).json({ error: 'Not authenticated' });
 
     const msg = await Message.findById(messageId).lean();
     if (!msg) return res.status(404).json({ error: 'Message not found' });

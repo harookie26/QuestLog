@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { clearAuth, getStoredUser, saveAuth } from '../js/auth'
+import { getStoredUser, logoutFromServer, saveAuth } from '../js/auth'
 import EditProfileModal from '../components/EditProfileModal'
 
 type TagCount = { name: string; count: number }
@@ -57,30 +57,23 @@ export default function ProfilePage() {
 
   const handleDeleteProfile = async () => {
     if (!user?._id) return
-    const actor = getStoredUser<any>()
-    const actorUsername = String(actor?.username || '').trim()
-    if (!actorUsername) {
-      alert('You must be signed in to delete this profile.')
-      return
-    }
-
     if (!window.confirm('Delete this profile? This cannot be undone.')) return
 
     setIsDeleting(true)
     try {
       const res = await fetch('/api/users/profile', {
         method: 'DELETE',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          _id: user._id,
-          currentUser: actorUsername
+          _id: user._id
         })
       })
       if (!res.ok) {
         const text = await res.text()
         throw new Error(text || 'Failed to delete profile')
       }
-      clearAuth()
+      await logoutFromServer()
       navigate('/login')
     } catch (err: any) {
       alert(err?.message || 'Failed to delete profile')
@@ -214,7 +207,6 @@ export default function ProfilePage() {
         <EditProfileModal
           open={editing}
           onClose={() => setEditing(false)}
-          currentUsername={String(getStoredUser<any>()?.username || '')}
           persistAuth={true}
           onSaved={(updated) => {
             setUser(updated)

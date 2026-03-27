@@ -1,13 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { getStoredUser } from '../js/auth'
 
 const CATEGORY_OPTIONS = ['Recommendation', 'Question', 'Bug Report'] as const
 
 export default function NewThread({ onClose, onCreate }: { onClose: () => void, onCreate?: (t: any) => void }){
-	type AuthUser = { username?: string }
-	const storedUser = getStoredUser<AuthUser>()
-	const author = storedUser?.username?.trim() || ''
-
 	const [platform, setPlatform] = useState('')
 	const [platforms, setPlatforms] = useState<string[]>([])
 	const [platformQuery, setPlatformQuery] = useState('')
@@ -57,11 +52,11 @@ export default function NewThread({ onClose, onCreate }: { onClose: () => void, 
 				platform,
 				category,
 				tags: selectedTags,
-				body: message,
-				author: author || undefined
+				body: message
 			}
 			const res = await fetch('/api/threads', {
 				method: 'POST',
+				credentials: 'include',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(payload)
 			})

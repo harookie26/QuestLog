@@ -24,8 +24,9 @@ export default function LoginPage() {
     try {
       const res = await fetch('/api/users/login', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: identifier.trim(), password })
+        body: JSON.stringify({ identifier: identifier.trim(), password, keepSignedIn })
       })
 
       if (!res.ok) {

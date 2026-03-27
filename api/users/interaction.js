@@ -1,5 +1,6 @@
 import { connect } from '../../lib/db.js'
 import User from '../../lib/models/User.js'
+import { getSessionUser } from '../../lib/auth/session.js'
 
 export default async function handler(req, res) {
   try {
@@ -16,15 +17,15 @@ export default async function handler(req, res) {
     }
 
     const body = req.body || {}
-    const currentUser = (body.currentUser || req.query?.currentUser || '').toString().trim()
     const type = (body.type || '').toString()
     const name = (body.name || '').toString().trim()
+    const sessionUser = getSessionUser(req)
 
-    if (!currentUser) return res.status(400).send('currentUser is required')
+    if (!sessionUser || !sessionUser._id) return res.status(401).send('Not authenticated')
     if (!type || !['tag', 'category'].includes(type)) return res.status(400).send('type must be "tag" or "category"')
     if (!name) return res.status(400).send('name is required')
 
-    const user = await User.findOne({ username: new RegExp(`^${currentUser}$`, 'i') })
+    const user = await User.findById(sessionUser._id)
     if (!user) return res.status(404).send('User not found')
 
     if (type === 'tag') {

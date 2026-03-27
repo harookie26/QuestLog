@@ -87,8 +87,9 @@ export default function InsideThreadsPage(){
     try {
       const res = await fetch(`/api/threads/${id}/messages`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: messageBody, author: author || 'Anonymous' })
+        body: JSON.stringify({ body: messageBody })
       })
       if (!res.ok) throw new Error(res.statusText)
       const created: Message = await res.json()
@@ -148,13 +149,13 @@ export default function InsideThreadsPage(){
     try {
       const res = await fetch(`/api/threads/${id}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: nextTitle,
           body: nextBody,
           category: threadCategoryDraft,
-          tags: nextTags,
-          currentUser: author
+          tags: nextTags
         })
       })
       if (!res.ok) {
@@ -178,8 +179,9 @@ export default function InsideThreadsPage(){
     setIsDeletingThread(true)
     setThreadError(null)
     try {
-      const res = await fetch(`/api/threads/${id}?currentUser=${encodeURIComponent(author)}`, {
-        method: 'DELETE'
+      const res = await fetch(`/api/threads/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
       })
       if (!res.ok) {
         const errorText = await res.text()
@@ -219,11 +221,9 @@ export default function InsideThreadsPage(){
     try {
       const res = await fetch(`/api/threads/${id}/messages?messageId=${encodeURIComponent(editingMessageId)}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          body: nextBody,
-          currentUser: author
-        })
+        body: JSON.stringify({ body: nextBody })
       })
       if (!res.ok) {
         const errorText = await res.text()
@@ -248,8 +248,9 @@ export default function InsideThreadsPage(){
     setDeletingMessageId(message._id)
     setMessageError(null)
     try {
-      const res = await fetch(`/api/threads/${id}/messages?messageId=${encodeURIComponent(message._id)}&currentUser=${encodeURIComponent(author)}`, {
-        method: 'DELETE'
+      const res = await fetch(`/api/threads/${id}/messages?messageId=${encodeURIComponent(message._id)}`, {
+        method: 'DELETE',
+        credentials: 'include'
       })
       if (!res.ok) {
         const errorText = await res.text()
@@ -292,8 +293,9 @@ export default function InsideThreadsPage(){
                       try {
                         await fetch('/api/users/interaction', {
                           method: 'POST',
+                          credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ currentUser: stored.username, type: 'category', name: thread.category })
+                          body: JSON.stringify({ type: 'category', name: thread.category })
                         })
                       } catch (err) {
                         // ignore
@@ -314,8 +316,9 @@ export default function InsideThreadsPage(){
                       try {
                         await fetch('/api/users/interaction', {
                           method: 'POST',
+                          credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ currentUser: stored.username, type: 'tag', name: tag })
+                          body: JSON.stringify({ type: 'tag', name: tag })
                         })
                       } catch (err) {
                         // ignore
