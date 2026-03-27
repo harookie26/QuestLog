@@ -1,5 +1,7 @@
 {
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/dispatch" }
+    ,
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
