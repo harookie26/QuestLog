@@ -57,7 +57,8 @@ async function handleLogin(req, res) {
   return res.status(200).json({
     _id: user._id.toString(),
     username: user.username,
-    email: user.email
+    email: user.email,
+    role: user.role || 'Member'
   });
 }
 
@@ -190,6 +191,7 @@ async function handleVerifyOtp(req, res) {
     username: pending.username,
     email: cleanEmail,
     password: pending.password,
+    role: 'Member',
     birthdate: pending.birthdate,
     gender: pending.gender,
     createdAt: new Date()
@@ -202,6 +204,7 @@ async function handleVerifyOtp(req, res) {
     _id: created.insertedId.toString(),
     username: userToInsert.username,
     email: userToInsert.email,
+    role: userToInsert.role,
     birthdate: userToInsert.birthdate || null,
     gender: userToInsert.gender || null,
     createdAt: userToInsert.createdAt

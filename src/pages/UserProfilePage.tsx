@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import EditProfileModal from '../components/EditProfileModal'
+import { getStoredUser } from '../js/auth'
 
 type TagCount = { name: string; count: number }
 
@@ -8,6 +10,11 @@ export default function UserProfilePage() {
   const navigate = useNavigate()
   const [user, setUser] = useState<any | null>(null)
   const [loading, setLoading] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const viewer = getStoredUser<{ username?: string; role?: string }>()
+  const viewerUsername = String(viewer?.username || '').trim()
+  const isAdmin = String(viewer?.role || 'Member') === 'Administrator'
 
   useEffect(() => {
     if (!username) return
@@ -42,6 +49,32 @@ export default function UserProfilePage() {
   const topTags = Object.keys(user?.tagCounts || {}).map(name => ({ name, count: user.tagCounts[name] })).sort((a:any,b:any)=>b.count-a.count).slice(0,8)
   const topCategories = Object.keys(user?.categoryCounts || {}).map(name => ({ name, count: user.categoryCounts[name] })).sort((a:any,b:any)=>b.count-a.count).slice(0,8)
 
+  const handleDeleteProfile = async () => {
+    if (!isAdmin || !viewerUsername || !user?._id) return
+    if (!window.confirm('Delete this profile? This cannot be undone.')) return
+
+    setIsDeleting(true)
+    try {
+      const res = await fetch('/api/users/profile', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          _id: user._id,
+          currentUser: viewerUsername
+        })
+      })
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || 'Failed to delete profile')
+      }
+      navigate('/threads')
+    } catch (err: any) {
+      alert(err?.message || 'Failed to delete profile')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-8">
       <div className="flex flex-col md:flex-row gap-8">
@@ -54,7 +87,15 @@ export default function UserProfilePage() {
                 <div className="text-sm text-violet-700">@{user?.username || (user?.email || '').split('@')[0]}</div>
                 <div className="mt-3 flex gap-2">
                   <button className="px-4 py-2 rounded bg-white border border-violet-300 text-violet-800">SHARE PROFILE</button>
+                  {isAdmin ? (
+                    <button onClick={() => setEditing(true)} className="px-4 py-2 rounded bg-violet-100 border border-violet-300 text-violet-800">EDIT PROFILE</button>
+                  ) : null}
                 </div>
+                {isAdmin ? (
+                  <div className="mt-3">
+                    <button onClick={handleDeleteProfile} disabled={isDeleting} className="px-3 py-2 rounded bg-white border border-red-200 text-red-600 disabled:opacity-60">{isDeleting ? 'DELETING PROFILE...' : 'DELETE PROFILE'}</button>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -138,6 +179,16 @@ export default function UserProfilePage() {
           </div>
         </div>
       </div>
+      <EditProfileModal
+        open={editing}
+        onClose={() => setEditing(false)}
+        targetUser={user}
+        currentUsername={viewerUsername}
+        persistAuth={false}
+        onSaved={(updated) => {
+          setUser(updated)
+        }}
+      />
     </div>
   )
 }

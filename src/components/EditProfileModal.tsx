@@ -5,14 +5,17 @@ type Props = {
   open: boolean
   onClose: () => void
   onSaved?: (user: any) => void
+  targetUser?: any | null
+  currentUsername?: string
+  persistAuth?: boolean
 }
 
-export default function EditProfileModal({ open, onClose, onSaved }: Props) {
+export default function EditProfileModal({ open, onClose, onSaved, targetUser = null, currentUsername = '', persistAuth = true }: Props) {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState<any>({})
 
   useEffect(() => {
-    const u = getStoredUser<any>()
+    const u = targetUser || getStoredUser<any>()
     if (u) {
       setForm({
         _id: u._id,
@@ -33,19 +36,26 @@ export default function EditProfileModal({ open, onClose, onSaved }: Props) {
   const handleSave = async () => {
     setLoading(true)
     try {
+      const stored = getStoredUser<any>()
+      const actorUsername = (currentUsername || stored?.username || '').trim()
       const res = await fetch('/api/users/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          ...form,
+          currentUser: actorUsername
+        })
       })
       if (!res.ok) {
         const text = await res.text()
         throw new Error(text || 'Save failed')
       }
       const updated = await res.json()
-      // persist to same storage location
-      const keepSignedIn = typeof window !== 'undefined' && localStorage.getItem('questlog-auth') === 'true'
-      saveAuth(updated, keepSignedIn)
+      if (persistAuth) {
+        // persist to same storage location
+        const keepSignedIn = typeof window !== 'undefined' && localStorage.getItem('questlog-auth') === 'true'
+        saveAuth(updated, keepSignedIn)
+      }
       if (onSaved) onSaved(updated)
       onClose()
     } catch (err: any) {

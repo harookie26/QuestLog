@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getStoredUser, saveAuth } from '../js/auth'
+import { clearAuth, getStoredUser, saveAuth } from '../js/auth'
 import EditProfileModal from '../components/EditProfileModal'
 
 type TagCount = { name: string; count: number }
@@ -9,6 +9,7 @@ export default function ProfilePage() {
   const navigate = useNavigate()
   const [user, setUser] = useState<any | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const u = getStoredUser<any>()
@@ -54,6 +55,40 @@ export default function ProfilePage() {
 
   const [editing, setEditing] = useState(false)
 
+  const handleDeleteProfile = async () => {
+    if (!user?._id) return
+    const actor = getStoredUser<any>()
+    const actorUsername = String(actor?.username || '').trim()
+    if (!actorUsername) {
+      alert('You must be signed in to delete this profile.')
+      return
+    }
+
+    if (!window.confirm('Delete this profile? This cannot be undone.')) return
+
+    setIsDeleting(true)
+    try {
+      const res = await fetch('/api/users/profile', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          _id: user._id,
+          currentUser: actorUsername
+        })
+      })
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || 'Failed to delete profile')
+      }
+      clearAuth()
+      navigate('/login')
+    } catch (err: any) {
+      alert(err?.message || 'Failed to delete profile')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (!user && !loading) {
     return (
       <div className="max-w-6xl mx-auto p-8 text-center">
@@ -77,7 +112,7 @@ export default function ProfilePage() {
                   <button className="px-4 py-2 rounded bg-white border border-violet-300 text-violet-800">SHARE PROFILE</button>
                 </div>
                 <div className="mt-3">
-                  <button className="px-3 py-2 rounded bg-white border border-red-200 text-red-600">DELETE PROFILE</button>
+                  <button onClick={handleDeleteProfile} disabled={isDeleting} className="px-3 py-2 rounded bg-white border border-red-200 text-red-600 disabled:opacity-60">{isDeleting ? 'DELETING PROFILE...' : 'DELETE PROFILE'}</button>
                 </div>
               </div>
             </div>
@@ -179,6 +214,8 @@ export default function ProfilePage() {
         <EditProfileModal
           open={editing}
           onClose={() => setEditing(false)}
+          currentUsername={String(getStoredUser<any>()?.username || '')}
+          persistAuth={true}
           onSaved={(updated) => {
             setUser(updated)
             const keepSignedIn = typeof window !== 'undefined' && localStorage.getItem('questlog-auth') === 'true'

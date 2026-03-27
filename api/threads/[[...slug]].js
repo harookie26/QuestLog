@@ -3,8 +3,12 @@ import { connect } from '../../lib/db.js';
 import Thread from '../../lib/models/Thread.js';
 import Message from '../../lib/models/Message.js';
 import Tag from '../../lib/models/Tag.js';
+import User from '../../lib/models/User.js';
 
 const VALID_CATEGORIES = new Set(['Recommendation', 'Question', 'Bug Report']);
+const ROLE_ADMINISTRATOR = 'Administrator';
+const ROLE_MODERATOR = 'Moderator';
+const ROLE_MEMBER = 'Member';
 
 function normalizeUser(value) {
   return String(value || '').trim().toLowerCase();
@@ -12,6 +16,30 @@ function normalizeUser(value) {
 
 function getCurrentUser(req) {
   return normalizeUser(req?.body?.currentUser || req?.query?.currentUser || '');
+}
+
+function toCaseInsensitiveExactRegex(value) {
+  return new RegExp(`^${String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+}
+
+function normalizeRole(value) {
+  if (value === ROLE_ADMINISTRATOR || value === ROLE_MODERATOR) return value;
+  return ROLE_MEMBER;
+}
+
+async function getCurrentActor(req) {
+  const currentUser = getCurrentUser(req);
+  if (!currentUser) return null;
+
+  const user = await User.findOne({ username: toCaseInsensitiveExactRegex(currentUser) })
+    .select('username role')
+    .lean();
+  if (!user) return null;
+
+  return {
+    username: normalizeUser(user.username),
+    role: normalizeRole(user.role)
+  };
 }
 
 function normalizeCategory(value) {
@@ -128,10 +156,10 @@ async function handleThreadById(req, res, id) {
     const thread = await Thread.findById(id).lean();
     if (!thread) return res.status(404).send('Not found');
 
-    const currentUser = getCurrentUser(req);
+    const actor = await getCurrentActor(req);
     const owner = normalizeUser(thread.author);
-    if (!currentUser) return res.status(401).send('currentUser is required');
-    if (!owner || owner !== currentUser) return res.status(403).send('Only the thread owner can edit this thread');
+    if (!actor) return res.status(401).send('currentUser is required');
+    if (!owner || owner !== actor.username) return res.status(403).send('Only the thread owner can edit this thread');
 
     const payload = req.body || {};
     if (payload.category !== undefined && !normalizeCategory(payload.category)) {
@@ -164,10 +192,9 @@ async function handleThreadById(req, res, id) {
     const thread = await Thread.findById(id).lean();
     if (!thread) return res.status(404).send('Not found');
 
-    const currentUser = getCurrentUser(req);
-    const owner = normalizeUser(thread.author);
-    if (!currentUser) return res.status(401).send('currentUser is required');
-    if (!owner || owner !== currentUser) return res.status(403).send('Only the thread owner can delete this thread');
+    const actor = await getCurrentActor(req);
+    if (!actor) return res.status(401).send('currentUser is required');
+    if (actor.role !== ROLE_ADMINISTRATOR) return res.status(403).send('Only administrators can delete this thread');
 
     await Thread.findByIdAndDelete(id);
     await Message.deleteMany({
@@ -231,14 +258,14 @@ async function handleThreadMessages(req, res, id) {
     const body = String(req?.body?.body || '').trim();
     if (!body) return res.status(400).json({ error: 'body is required' });
 
-    const currentUser = getCurrentUser(req);
-    if (!currentUser) return res.status(401).json({ error: 'currentUser is required' });
+    const actor = await getCurrentActor(req);
+    if (!actor) return res.status(401).json({ error: 'currentUser is required' });
 
     const msg = await Message.findById(messageId).lean();
     if (!msg) return res.status(404).json({ error: 'Message not found' });
 
     const owner = normalizeUser(msg.author);
-    if (!owner || owner !== currentUser) {
+    if (!owner || owner !== actor.username) {
       return res.status(403).json({ error: 'Only the reply owner can edit this reply' });
     }
 
@@ -257,15 +284,16 @@ async function handleThreadMessages(req, res, id) {
     const messageId = String(req?.query?.messageId || req?.body?.messageId || '').trim();
     if (!messageId) return res.status(400).json({ error: 'messageId is required' });
 
-    const currentUser = getCurrentUser(req);
-    if (!currentUser) return res.status(401).json({ error: 'currentUser is required' });
+    const actor = await getCurrentActor(req);
+    if (!actor) return res.status(401).json({ error: 'currentUser is required' });
 
     const msg = await Message.findById(messageId).lean();
     if (!msg) return res.status(404).json({ error: 'Message not found' });
 
     const owner = normalizeUser(msg.author);
-    if (!owner || owner !== currentUser) {
-      return res.status(403).json({ error: 'Only the reply owner can delete this reply' });
+    const canModerateDelete = actor.role === ROLE_MODERATOR || actor.role === ROLE_ADMINISTRATOR;
+    if ((!owner || owner !== actor.username) && !canModerateDelete) {
+      return res.status(403).json({ error: 'Only the reply owner, moderator, or administrator can delete this reply' });
     }
 
     await Message.findByIdAndDelete(messageId);

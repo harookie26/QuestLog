@@ -1,5 +1,21 @@
 import { connect } from '../../lib/db.js'
 import User from '../../lib/models/User.js'
+import Thread from '../../lib/models/Thread.js'
+import Message from '../../lib/models/Message.js'
+
+const ROLE_ADMINISTRATOR = 'Administrator'
+
+function normalizeUser(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function normalizeRole(value) {
+  return value === ROLE_ADMINISTRATOR ? ROLE_ADMINISTRATOR : 'Member'
+}
+
+function toCaseInsensitiveExactRegex(value) {
+  return new RegExp(`^${String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+}
 
 export default async function handler(req, res) {
   try {
@@ -30,13 +46,18 @@ export default async function handler(req, res) {
       const { _id } = body
       if (!_id) return res.status(400).send('_id is required')
 
-      // authorization: require currentUser to match the username of the target user
       const currentUser = (body.currentUser || req.query?.currentUser || '').toString().trim()
       if (!currentUser) return res.status(401).send('currentUser is required')
 
+      const actor = await User.findOne({ username: toCaseInsensitiveExactRegex(currentUser) }).select('username role').lean()
+      if (!actor) return res.status(401).send('currentUser is required')
+
       const target = await User.findById(_id).lean()
       if (!target) return res.status(404).send('User not found')
-      if (String(target.username).trim().toLowerCase() !== String(currentUser).trim().toLowerCase()) return res.status(403).send('Not authorized')
+
+      const isSelfEdit = normalizeUser(target.username) === normalizeUser(actor.username)
+      const isAdmin = normalizeRole(actor.role) === ROLE_ADMINISTRATOR
+      if (!isSelfEdit && !isAdmin) return res.status(403).send('Not authorized')
 
       // only allow editing of specific fields
       const allowed = ['displayName', 'name', 'birthdate', 'gender', 'address', 'phone']
@@ -63,7 +84,36 @@ export default async function handler(req, res) {
       return res.status(200).json(fresh)
     }
 
-    res.setHeader('Allow', ['GET', 'PUT'])
+    if (req.method === 'DELETE') {
+      const body = req.body || {}
+      const id = body._id || req.query?.id || req.query?._id
+      if (!id) return res.status(400).send('_id is required')
+
+      const currentUser = (body.currentUser || req.query?.currentUser || '').toString().trim()
+      if (!currentUser) return res.status(401).send('currentUser is required')
+
+      const actor = await User.findOne({ username: toCaseInsensitiveExactRegex(currentUser) }).select('username role').lean()
+      if (!actor) return res.status(401).send('currentUser is required')
+
+      const target = await User.findById(id).lean()
+      if (!target) return res.status(404).send('User not found')
+
+      const isSelfDelete = normalizeUser(target.username) === normalizeUser(actor.username)
+      const isAdmin = normalizeRole(actor.role) === ROLE_ADMINISTRATOR
+      if (!isSelfDelete && !isAdmin) return res.status(403).send('Not authorized')
+
+      const targetUsername = String(target.username || '').trim()
+      if (targetUsername) {
+        const targetRegex = toCaseInsensitiveExactRegex(targetUsername)
+        await Thread.updateMany({ author: targetRegex }, { $set: { author: 'Deleted User' } })
+        await Message.updateMany({ author: targetRegex }, { $set: { author: 'Deleted User' } })
+      }
+
+      await User.findByIdAndDelete(id)
+      return res.status(204).end()
+    }
+
+    res.setHeader('Allow', ['GET', 'PUT', 'DELETE'])
     return res.status(405).end(`Method ${req.method} Not Allowed`)
   } catch (err) {
     console.error('/api/users/profile error', err)

@@ -6,16 +6,19 @@ const CATEGORY_OPTIONS = ['Recommendation', 'Question', 'Bug Report'] as const
 
 type Thread = { _id?: string; title?: string; game?: string; platform?: string; category?: string; tags?: string[]; author?: string; body?: string; createdAt?: string }
 type Message = { _id?: string; thread?: string; author?: string; body?: string; createdAt?: string }
+type UserRole = 'Administrator' | 'Moderator' | 'Member'
 
 const normalizeUser = (value?: string) => String(value || '').trim().toLowerCase()
+const normalizeRole = (value?: string): UserRole => (value === 'Administrator' || value === 'Moderator' ? value : 'Member')
 
 export default function InsideThreadsPage(){
   const navigate = useNavigate()
   const { id } = useParams<{ id?: string }>()
-  type AuthUser = { username?: string }
+  type AuthUser = { username?: string; role?: string }
   const storedUser = getStoredUser<AuthUser>()
   const author = storedUser?.username?.trim() || ''
   const currentUser = normalizeUser(author)
+  const currentRole = normalizeRole(storedUser?.role)
   const [thread, setThread] = useState<Thread | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [reply, setReply] = useState('')
@@ -101,6 +104,8 @@ export default function InsideThreadsPage(){
 
   const isThreadOwner = !!thread && !!currentUser && normalizeUser(thread.author) === currentUser
   const isMessageOwner = (message: Message) => !!currentUser && normalizeUser(message.author) === currentUser
+  const isAdministrator = currentRole === 'Administrator'
+  const isModerator = currentRole === 'Moderator'
 
   const startThreadEdit = () => {
     setThreadError(null)
@@ -359,7 +364,6 @@ export default function InsideThreadsPage(){
                 {isThreadOwner && !isEditingThread ? (
                   <>
                     <button type="button" onClick={startThreadEdit} className="text-xs px-2 py-1 border border-violet-300 rounded text-violet-700">Edit</button>
-                    <button type="button" onClick={deleteThread} disabled={isDeletingThread} className="text-xs px-2 py-1 border border-red-300 rounded text-red-700 disabled:opacity-60">{isDeletingThread ? 'Deleting...' : 'Delete'}</button>
                   </>
                 ) : null}
               </div>
@@ -421,6 +425,7 @@ export default function InsideThreadsPage(){
         {messages.map((m, idx) => {
           const isEditingThisMessage = editingMessageId === m._id
           const canEditMessage = isMessageOwner(m)
+          const canDeleteMessage = canEditMessage || isModerator || isAdministrator
           const isSavingThisMessage = savingMessageId === m._id
           const isDeletingThisMessage = deletingMessageId === m._id
 
@@ -439,10 +444,14 @@ export default function InsideThreadsPage(){
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="text-xs text-violet-500">{m.createdAt ? new Date(m.createdAt).toLocaleString() : ''}</div>
-                  {canEditMessage && !isEditingThisMessage ? (
+                  {!isEditingThisMessage ? (
                     <>
-                      <button type="button" onClick={() => startMessageEdit(m)} className="text-xs px-2 py-1 border border-violet-300 rounded text-violet-700">Edit</button>
-                      <button type="button" onClick={() => deleteMessage(m)} disabled={isDeletingThisMessage} className="text-xs px-2 py-1 border border-red-300 rounded text-red-700 disabled:opacity-60">{isDeletingThisMessage ? 'Deleting...' : 'Delete'}</button>
+                      {canEditMessage ? (
+                        <button type="button" onClick={() => startMessageEdit(m)} className="text-xs px-2 py-1 border border-violet-300 rounded text-violet-700">Edit</button>
+                      ) : null}
+                      {canDeleteMessage ? (
+                        <button type="button" onClick={() => deleteMessage(m)} disabled={isDeletingThisMessage} className="text-xs px-2 py-1 border border-red-300 rounded text-red-700 disabled:opacity-60">{isDeletingThisMessage ? 'Deleting...' : 'Delete'}</button>
+                      ) : null}
                     </>
                   ) : null}
                 </div>
@@ -476,13 +485,24 @@ export default function InsideThreadsPage(){
         </div>
         <div className="mt-2 flex items-center justify-between">
           <div className="text-sm text-violet-600">Page <select className="ml-1 border rounded px-1 py-0.5"><option>1</option></select> of 12</div>
-          <button
-            onClick={postReply}
-            disabled={isPosting || !reply.trim()}
-            className="px-4 py-2 bg-violet-700 text-white rounded disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isPosting ? 'Posting...' : 'Post New Message'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={postReply}
+              disabled={isPosting || !reply.trim()}
+              className="px-4 py-2 bg-violet-700 text-white rounded disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isPosting ? 'Posting...' : 'Post New Message'}
+            </button>
+            {isAdministrator ? (
+              <button
+                onClick={deleteThread}
+                disabled={isDeletingThread}
+                className="px-4 py-2 bg-red-700 text-white rounded disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isDeletingThread ? 'Deleting...' : 'Delete'}
+              </button>
+            ) : null}
+          </div>
         </div>
       </section>
     </div>
