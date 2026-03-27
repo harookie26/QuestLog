@@ -198,10 +198,10 @@ export default function Header() {
           </div>
 
             <div className={`flex-1 px-4 transition-all ${scrolled ? 'flex justify-center' : ''}`}>
-              <div className={`mx-auto w-full ${scrolled ? 'max-w-2xl' : 'max-w-md'}`}>
+              <div className={`mx-auto w-full relative ${scrolled ? 'max-w-2xl' : 'max-w-md'}`}>
                 <label className="relative block">
                   <input
-                    className="w-full rounded-full border border-violet-400 bg-white/90 py-2 pl-4 pr-10 text-sm placeholder-violet-600 shadow-sm"
+                    className="w-full rounded-xl border-2 border-violet-400/80 bg-white py-2.5 pl-4 pr-10 text-sm text-violet-900 placeholder-violet-500 shadow-sm transition-all duration-150 focus:border-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300"
                     placeholder="Search threads or games"
                     value={searchQuery}
                     onFocus={() => setShowSearch(true)}
@@ -213,16 +213,16 @@ export default function Header() {
                       }
                     }}
                   />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-violet-700">🔍</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-violet-700">🔍</span>
                 </label>
                 {showSearch && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <label htmlFor="header-thread-category" className="text-xs text-violet-900 whitespace-nowrap">Thread category</label>
+                  <div className="absolute left-0 right-0 top-full mt-2 flex items-center gap-2 rounded-lg bg-white/95 border border-violet-200 px-3 py-2 shadow-md z-40">
+                    <label htmlFor="header-thread-category" className="text-[11px] font-semibold tracking-wide uppercase text-violet-700 whitespace-nowrap">Thread category</label>
                     <select
                       id="header-thread-category"
                       value={threadCategory}
                       onChange={(e) => setThreadCategory(e.target.value as typeof THREAD_CATEGORIES[number])}
-                      className="px-2 py-1 border border-violet-300 bg-white rounded text-xs text-violet-900"
+                      className="px-2 py-1.5 border border-violet-300 bg-white rounded-md text-xs text-violet-900 focus:border-violet-600 focus:outline-none"
                     >
                       {THREAD_CATEGORIES.map((category) => (
                         <option key={category} value={category}>{category}</option>
@@ -231,25 +231,25 @@ export default function Header() {
                   </div>
                 )}
                 {showSearch && (searchResults.threads.length > 0 || searchResults.games.length > 0 || searchLoading) && (
-                  <div className="absolute left-0 right-0 mt-2 bg-white border rounded shadow max-h-72 overflow-auto z-40">
-                    <div className="p-2 text-sm text-gray-600">{searchLoading ? 'Searching…' : 'Results'}</div>
+                  <div className="absolute left-0 right-0 top-full mt-14 bg-white border border-violet-200 rounded-xl shadow-xl shadow-violet-900/10 max-h-80 overflow-auto z-40">
+                    <div className="px-3 py-2 text-xs font-semibold tracking-wide uppercase text-violet-700 bg-violet-50 border-b border-violet-100">{searchLoading ? 'Searching…' : 'Results'}</div>
                     {searchResults.threads.length > 0 && (
-                      <div className="border-t">
-                        <div className="p-2 text-xs text-violet-700 font-semibold">Threads</div>
+                      <div className="border-t border-violet-100 first:border-t-0">
+                        <div className="px-3 py-2 text-[11px] text-violet-700 font-semibold uppercase tracking-wide">Threads</div>
                         {searchResults.threads.map(t => (
-                          <button key={t._id} onClick={() => { setShowSearch(false); setSearchQuery(''); setIsOpen(false); navigate(`/threads/inside/${t._id}`) }} className="w-full text-left px-3 py-2 hover:bg-violet-50">
-                            <div className="font-medium text-violet-900">{t.title}</div>
-                            {t.game ? <div className="text-xs text-violet-700">{t.game}</div> : null}
+                          <button key={t._id} onClick={() => { setShowSearch(false); setSearchQuery(''); setIsOpen(false); navigate(`/threads/inside/${t._id}`) }} className="w-full text-left px-3 py-2.5 hover:bg-violet-50/70 border-t border-violet-100 first:border-t-0 transition-colors">
+                            <div className="font-semibold text-violet-900 leading-tight">{t.title}</div>
+                            {t.game ? <div className="text-xs text-violet-700 mt-0.5">{t.game}</div> : null}
                           </button>
                         ))}
                       </div>
                     )}
                     {searchResults.games.length > 0 && (
-                      <div className="border-t">
-                        <div className="p-2 text-xs text-violet-700 font-semibold">Games</div>
+                      <div className="border-t border-violet-100">
+                        <div className="px-3 py-2 text-[11px] text-violet-700 font-semibold uppercase tracking-wide">Games</div>
                         {searchResults.games.map(g => (
-                          <button key={g._id} onClick={() => { setShowSearch(false); setSearchQuery(''); setIsOpen(false); navigate(`/games?q=${encodeURIComponent(g.name)}`) }} className="w-full text-left px-3 py-2 hover:bg-violet-50">
-                            <div className="font-medium text-violet-900">{g.name}</div>
+                          <button key={g._id} onClick={() => { setShowSearch(false); setSearchQuery(''); setIsOpen(false); navigate(`/games?q=${encodeURIComponent(g.name)}`) }} className="w-full text-left px-3 py-2.5 hover:bg-violet-50/70 border-t border-violet-100 first:border-t-0 transition-colors">
+                            <div className="font-semibold text-violet-900 leading-tight">{g.name}</div>
                           </button>
                         ))}
                       </div>
