@@ -344,6 +344,15 @@ export default function InsideThreadsPage(){
           >
             Post New Message
           </button>
+          {isAdministrator ? (
+            <button
+              onClick={deleteThread}
+              disabled={isDeletingThread}
+              className="px-3 py-1 bg-red-700 text-white text-sm rounded disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isDeletingThread ? 'Deleting...' : 'Delete'}
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -485,24 +494,13 @@ export default function InsideThreadsPage(){
         </div>
         <div className="mt-2 flex items-center justify-between">
           <div className="text-sm text-violet-600">Page <select className="ml-1 border rounded px-1 py-0.5"><option>1</option></select> of 12</div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={postReply}
-              disabled={isPosting || !reply.trim()}
-              className="px-4 py-2 bg-violet-700 text-white rounded disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {isPosting ? 'Posting...' : 'Post New Message'}
-            </button>
-            {isAdministrator ? (
-              <button
-                onClick={deleteThread}
-                disabled={isDeletingThread}
-                className="px-4 py-2 bg-red-700 text-white rounded disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isDeletingThread ? 'Deleting...' : 'Delete'}
-              </button>
-            ) : null}
-          </div>
+          <button
+            onClick={postReply}
+            disabled={isPosting || !reply.trim()}
+            className="px-4 py-2 bg-violet-700 text-white rounded disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isPosting ? 'Posting...' : 'Post New Message'}
+          </button>
         </div>
       </section>
     </div>
