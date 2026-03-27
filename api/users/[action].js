@@ -30,6 +30,10 @@ function getAction(req) {
   return String(raw || '').trim();
 }
 
+function requireStrictEmailDelivery() {
+  return process.env.VERCEL_ENV === 'production' || process.env.STRICT_EMAIL_DELIVERY === 'true';
+}
+
 async function handleLogin(req, res) {
   const { identifier, password } = req.body || {};
 
@@ -128,13 +132,13 @@ async function handleSendOtp(req, res) {
     expiresAt: otpExpiresAt
   };
 
-  if (!emailResult.delivered && process.env.NODE_ENV === 'production') {
-    return res.status(503).send('Email delivery is not configured. Please configure SMTP settings.');
+  if (!emailResult.delivered && requireStrictEmailDelivery()) {
+    return res.status(503).send('Email delivery failed. Please verify SMTP configuration and provider limits.');
   }
 
-  if (!emailResult.delivered && process.env.NODE_ENV !== 'production') {
+  if (!emailResult.delivered && !requireStrictEmailDelivery()) {
     payload.devOtp = otpCode;
-    payload.note = 'SMTP is not configured. Use devOtp for local testing.';
+    payload.note = `Email delivery failed (${emailResult.reason || 'unknown'}). Use devOtp for local testing.`;
   }
 
   return res.status(200).json(payload);
@@ -263,13 +267,13 @@ async function handleRequestPasswordReset(req, res) {
     expiresAt: otpExpiresAt
   };
 
-  if (!emailResult.delivered && process.env.NODE_ENV === 'production') {
-    return res.status(503).send('Email delivery is not configured. Please configure SMTP settings.');
+  if (!emailResult.delivered && requireStrictEmailDelivery()) {
+    return res.status(503).send('Email delivery failed. Please verify SMTP configuration and provider limits.');
   }
 
-  if (!emailResult.delivered && process.env.NODE_ENV !== 'production') {
+  if (!emailResult.delivered && !requireStrictEmailDelivery()) {
     payload.devOtp = otpCode;
-    payload.note = 'SMTP is not configured. Use devOtp for local testing.';
+    payload.note = `Email delivery failed (${emailResult.reason || 'unknown'}). Use devOtp for local testing.`;
   }
 
   return res.status(200).json(payload);
