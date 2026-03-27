@@ -2,6 +2,26 @@ import actionHandler from './[action].js';
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
+    const rawAction = Array.isArray(req?.query?.action) ? req.query.action[0] : req?.query?.action;
+    const explicitAction = String(rawAction || '').trim();
+    const allowedExplicitActions = new Set([
+      'login',
+      'send-otp',
+      'verify-otp',
+      'request-password-reset',
+      'verify-password-reset-otp',
+      'reset-password'
+    ]);
+
+    // If route already resolved an explicit action (e.g. /api/users/verify-otp), honor it.
+    if (allowedExplicitActions.has(explicitAction)) {
+      req.query = {
+        ...(req.query || {}),
+        action: explicitAction
+      };
+      return actionHandler(req, res);
+    }
+
     let body = {};
     try {
       body = req.body || {};
@@ -13,6 +33,8 @@ export default async function handler(req, res) {
     const hasIdentifier = typeof body.identifier === 'string' && String(body.identifier).trim().length > 0;
     const hasEmail = typeof body.email === 'string' && String(body.email).trim().length > 0;
     const hasResetToken = typeof body.resetToken === 'string' && String(body.resetToken).trim().length > 0;
+    const hasNewPassword = typeof body.newPassword === 'string' && String(body.newPassword).trim().length > 0;
+    const hasConfirmPassword = typeof body.confirmPassword === 'string' && String(body.confirmPassword).trim().length > 0;
     
     // If it's a login request (has identifier and password but no otp), route to login
     if (hasIdentifier && hasPassword && !hasOtp) {
@@ -29,14 +51,8 @@ export default async function handler(req, res) {
       };
     }
     // If it's a password reset verify request (email + otp but no password/resetToken), route to verify-password-reset-otp
-    else if (hasEmail && hasOtp && !hasPassword && !hasResetToken) {
-      req.query = {
-        ...(req.query || {}),
-        action: 'verify-password-reset-otp'
-      };
-    }
-    // If it's a reset password request (email + resetToken + password), route to reset-password
-    else if (hasEmail && hasResetToken && hasPassword) {
+    // If it's a reset password request (email + resetToken + newPassword + confirmPassword), route to reset-password
+    else if (hasEmail && hasResetToken && hasNewPassword && hasConfirmPassword) {
       req.query = {
         ...(req.query || {}),
         action: 'reset-password'
