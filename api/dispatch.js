@@ -6,17 +6,17 @@ function getPathParts(req) {
   return parts
 }
 
-async function tryImport(path) {
-  try {
-    return await import(path)
-  } catch {
-    return null
-  }
-}
-
 async function resolveHandlerModule(base) {
-  // Try catch-all first, then index.js.
-  return (await tryImport(`./${base}/[[...slug]].js`)) || (await tryImport(`./${base}/index.js`))
+  // Try index.js first, then catch-all
+  try {
+    return await import(`./${base}/index.js`)
+  } catch (e) {
+    try {
+      return await import(`./${base}/[[...slug]].js`)
+    } catch (e2) {
+      return null
+    }
+  }
 }
 
 export default async function dispatch(req, res) {
@@ -28,24 +28,7 @@ export default async function dispatch(req, res) {
   const base = parts[0]
   const slugParts = parts.slice(1)
 
-  let module = null
-
-  if (slugParts.length === 1) {
-    module = await tryImport(`./${base}/${slugParts[0]}.js`)
-  }
-
-  if (!module && slugParts.length > 0) {
-    module = await tryImport(`./${base}/[action].js`)
-    if (module) {
-      req.query = req.query || {}
-      req.query.action = slugParts[0]
-    }
-  }
-
-  if (!module) {
-    module = await resolveHandlerModule(base)
-  }
-
+  const module = await resolveHandlerModule(base)
   if (!module) {
     return res.status(404).json({ error: 'Not found' })
   }
@@ -53,6 +36,11 @@ export default async function dispatch(req, res) {
   const handler = module.default || module
   req.query = req.query || {}
   req.query.slug = slugParts.length ? slugParts : undefined
+  
+  // Set action param if first slug part exists (for [action].js handlers)
+  if (slugParts.length > 0) {
+    req.query.action = slugParts[0]
+  }
 
   try {
     // allow handler to be async or sync
