@@ -266,7 +266,15 @@ export default function InsideThreadsPage(){
     <div className="max-w-6xl mx-auto p-6">
       <header className="mb-4">
         <div className="flex items-start gap-4">
-          <img src="https://via.placeholder.com/80" alt={thread?.title || 'Thread'} className="w-20 h-20 object-cover rounded-sm" />
+          {
+            <div className="w-20 h-20 bg-violet-200 rounded-sm flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-8 h-8 text-violet-700" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+                <rect x="2.5" y="3.5" width="19" height="17" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M8 14l2.5-3 3.5 4.5" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="16.5" cy="7.5" r="1.2" />
+              </svg>
+            </div>
+          }
           <div>
             <h1 className="text-3xl font-extrabold text-violet-900">{thread?.title }</h1>
             <div className="text-sm text-violet-700">{thread?.game} <span className="text-violet-500">{thread?.platform}</span></div>

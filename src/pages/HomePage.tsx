@@ -15,7 +15,15 @@ const CardItem = ({title, subtitle, img, type, to}:{title:string; subtitle:strin
 
   const content = (
     <div className="flex items-start gap-4 p-3 bg-violet-100/80 border-b border-violet-200">
-      <img src={imgSrc} alt={title} className="w-12 h-12 object-cover rounded-sm" />
+      {
+        <div className="w-12 h-12 bg-violet-200 rounded-sm flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-6 h-6 text-violet-700" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+            <rect x="2.5" y="3.5" width="19" height="17" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M8 14l2.5-3 3.5 4.5" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="16.5" cy="7.5" r="1.2" />
+          </svg>
+        </div>
+      }
       <div>
         <div className="font-semibold text-violet-900">{title}</div>
         <div className="text-xs text-violet-700">{subtitle}</div>
