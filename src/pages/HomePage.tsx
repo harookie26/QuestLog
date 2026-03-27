@@ -15,7 +15,7 @@ const CardItem = ({title, subtitle, img, type, to}:{title:string; subtitle:strin
 
   const content = (
     <div className="flex items-start gap-4 p-3 bg-violet-100/80 border-b border-violet-200">
-      <img src={imgSrc} alt="thumb" className="w-12 h-12 object-cover rounded-sm" />
+      <img src={imgSrc} alt={title} className="w-12 h-12 object-cover rounded-sm" />
       <div>
         <div className="font-semibold text-violet-900">{title}</div>
         <div className="text-xs text-violet-700">{subtitle}</div>

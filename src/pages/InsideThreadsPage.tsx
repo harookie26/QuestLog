@@ -266,7 +266,7 @@ export default function InsideThreadsPage(){
     <div className="max-w-6xl mx-auto p-6">
       <header className="mb-4">
         <div className="flex items-start gap-4">
-          <img src="https://via.placeholder.com/80" alt="thumb" className="w-20 h-20 object-cover rounded-sm" />
+          <img src="https://via.placeholder.com/80" alt={thread?.title || 'Thread'} className="w-20 h-20 object-cover rounded-sm" />
           <div>
             <h1 className="text-3xl font-extrabold text-violet-900">{thread?.title }</h1>
             <div className="text-sm text-violet-700">{thread?.game} <span className="text-violet-500">{thread?.platform}</span></div>

@@ -35,7 +35,7 @@ export default function MainThreadsPage(){
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex items-start gap-6 mb-6">
-        <img src="/js/placeholder-thumb.jpg" alt="thumb" className="w-24 h-24 object-cover rounded-sm shadow-sm" />
+        <img src="https://via.placeholder.com/96" alt="Main board" className="w-24 h-24 object-cover rounded-sm shadow-sm" />
         <div>
           <h1 className="text-2xl font-bold text-violet-900">Monster Hunter: World - Message Board</h1>
           <p className="text-sm text-violet-700 mt-1">Discussion boards for questions, predictions, guides, and tips in video games.</p>
