@@ -1,26 +1,19 @@
-import { connect } from '../../lib/db.js';
+import actionHandler from './[action].js';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-
-  try {
-    await connect();
-  } catch (err) {
-    console.error('DB connect error', err);
-    return res.status(500).send('Database connection error');
-  }
-
   if (req.method === 'POST') {
-    return res.status(410).json({
-      message: 'Direct signup is disabled. Use /api/users/send-otp and /api/users/verify-otp.'
-    });
+    const body = req.body || {};
+    const hasOtp = typeof body.otp === 'string' && String(body.otp).trim().length > 0;
+    const hasPassword = typeof body.password === 'string' && String(body.password).trim().length > 0;
+    const action = hasOtp && !hasPassword ? 'verify-otp' : 'send-otp';
+
+    req.query = {
+      ...(req.query || {}),
+      action
+    };
+
+    res.setHeader('X-Deprecated-Endpoint', 'Use /api/users/send-otp and /api/users/verify-otp');
   }
 
-  res.setHeader('Allow', ['POST']);
-  res.status(405).end(`Method ${req.method} Not Allowed`);
+  return actionHandler(req, res);
 }
