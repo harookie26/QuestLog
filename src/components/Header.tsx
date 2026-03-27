@@ -230,7 +230,6 @@ export default function Header() {
                     </select>
                   </div>
                 )}
-                {/* Search dropdown */}
                 {showSearch && (searchResults.threads.length > 0 || searchResults.games.length > 0 || searchLoading) && (
                   <div className="absolute left-0 right-0 mt-2 bg-white border rounded shadow max-h-72 overflow-auto z-40">
                     <div className="p-2 text-sm text-gray-600">{searchLoading ? 'Searching…' : 'Results'}</div>
