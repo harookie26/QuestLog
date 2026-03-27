@@ -39,7 +39,7 @@ export default function App() {
     return () => {
       isMounted = false
     }
-  }, [location.pathname])
+  }, [])
 
   const isAuthPage =
     location.pathname === '/login' ||
@@ -55,10 +55,25 @@ export default function App() {
     return <>{children}</>
   }
 
-  if (!isAuthPage && isAuthLoading) {
+  if (isAuthLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-violet-800 font-semibold">
-        Restoring session...
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-100 via-violet-50 to-slate-100 px-6">
+        <div className="w-full max-w-sm rounded-2xl border-2 border-violet-200 bg-white/85 backdrop-blur p-8 shadow-xl text-center">
+          <div className="mx-auto mb-4 relative h-14 w-14">
+            <span className="absolute inset-0 rounded-full border-4 border-violet-200" />
+            <span className="absolute inset-0 rounded-full border-4 border-transparent border-t-violet-700 animate-spin" />
+            <span className="absolute inset-3 rounded-full bg-violet-100 animate-pulse" />
+          </div>
+
+          <p className="text-violet-900 font-extrabold tracking-wide text-lg">QuestLog</p>
+          <p className="mt-1 text-violet-700 text-sm">Restoring your session</p>
+
+          <div className="mt-4 flex items-center justify-center gap-1.5" aria-hidden="true">
+            <span className="h-2 w-2 rounded-full bg-violet-500 animate-bounce [animation-delay:-0.2s]" />
+            <span className="h-2 w-2 rounded-full bg-violet-500 animate-bounce [animation-delay:-0.1s]" />
+            <span className="h-2 w-2 rounded-full bg-violet-500 animate-bounce" />
+          </div>
+        </div>
       </div>
     )
   }
