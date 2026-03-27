@@ -1,107 +1,96 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+
+type GameDoc = { _id?: string; name: string }
 
 export default function MainGamesPage() {
-  const newReleases = [
-    { title: 'Code Vein II', platforms: ['PS5', 'PC', 'XBSX'] },
-    { title: 'Dragon Quest VII Reimagined', platforms: ['NS2', 'PS5', 'NS', 'XBSX', 'PC'] },
-    { title: 'Nioh 3', platforms: ['PS4', 'XONE', 'PC', 'PS5', 'XBSX', 'NS2'] },
-    { title: 'Genshin Impact', platforms: ['PS4', 'PC', 'PS5', 'AND', 'IOS', 'NS', 'XBSX'] },
-  ]
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [games, setGames] = useState<GameDoc[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const popular = [
-    'The Elder Scrolls V: Skyrim',
-    'Fallout: New Vegas',
-    'Fallout 4',
-    'Genshin Impact',
-    'Red Dead Redemption 2',
-    'World of Warcraft',
-    'Fallout 3',
-    'Elden Ring',
-    'Pokemon HeartGold/SoulSilver Version',
-    'The Witcher 3: Wild Hunt',
-  ]
+  const q = (searchParams.get('q') || '').trim()
+  const sortParam = (searchParams.get('sort') || 'asc').trim().toLowerCase()
+  const sort = sortParam === 'desc' ? 'desc' : 'asc'
 
-  const byPlatform = [
-    'Fallout: New Vegas',
-    'Fallout 4',
-    'The Elder Scrolls V: Skyrim',
-    'World of Warcraft',
-    'Genshin Impact',
-    'Red Dead Redemption 2',
-    'League of Legends',
-    'The Elder Scrolls V: Skyrim',
-    'The Witcher 3: Wild Hunt',
-    'Pokemon HeartGold Version',
-  ]
+  const updateParams = (updates: Record<string, string | null>) => {
+    const next = new URLSearchParams(searchParams)
+    for (const [key, value] of Object.entries(updates)) {
+      if (!value) next.delete(key)
+      else next.set(key, value)
+    }
+    setSearchParams(next)
+  }
+
+  useEffect(() => {
+    let mounted = true
+    const loadGames = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const params = new URLSearchParams()
+        if (q) params.set('q', q)
+        params.set('sort', sort)
+        const res = await fetch(`/api/games?${params.toString()}`)
+        if (!res.ok) {
+          const text = await res.text()
+          throw new Error(text || 'Failed to fetch games')
+        }
+        const list: GameDoc[] = await res.json()
+        if (mounted) setGames(Array.isArray(list) ? list : [])
+      } catch (err: any) {
+        if (mounted) {
+          setGames([])
+          setError(err?.message || 'Failed to fetch games')
+        }
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    loadGames()
+    return () => { mounted = false }
+  }, [q, sort])
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <section className="mb-8">
-        <h2 className="text-2xl font-bold text-violet-900 mb-3">Popular New Releases</h2>
-        <div className="border-t border-violet-300" />
-
-        <div className="mt-4 space-y-2">
-          {newReleases.map((r, i) => (
-            <div key={i} className="flex items-center justify-between bg-violet-100/60 rounded shadow-sm">
-              <div className="flex items-center gap-4 p-3">
-                <div className="w-12 h-12 bg-violet-200 rounded-sm flex items-center justify-center">🎮</div>
-                <div>
-                  <div className="font-semibold text-violet-900">{r.title}</div>
-                  <div className="text-xs text-violet-700 mt-1">
-                    {r.platforms.map((p, idx) => (
-                      <span key={idx} className="mr-2 underline decoration-dotted">{p}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="p-3 text-sm">
-                <a className="text-violet-800 underline" href="#">Message Board</a>
-              </div>
-            </div>
-          ))}
+      <section className="mb-6">
+        <h2 className="text-2xl font-bold text-violet-900 mb-3">Games</h2>
+        <div className="border-t border-violet-300 mb-4" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <input
+            value={q}
+            onChange={(e) => updateParams({ q: e.target.value.trim() || null })}
+            placeholder="Search games"
+            className="px-3 py-2 border rounded bg-white text-violet-800 text-sm md:col-span-3"
+          />
+          <select
+            value={sort}
+            onChange={(e) => updateParams({ sort: e.target.value })}
+            className="px-3 py-2 border rounded bg-white text-violet-800 text-sm"
+          >
+            <option value="asc">A-Z</option>
+            <option value="desc">Z-A</option>
+          </select>
         </div>
       </section>
 
-      <section className="grid md:grid-cols-2 gap-6">
-        <div>
-          <h3 className="text-xl font-bold text-violet-900 mb-2">Popular Games</h3>
-          <div className="border-t border-violet-300" />
-          <ol className="mt-3 space-y-1">
-            {popular.map((p, idx) => (
-              <li key={p} className="flex items-center bg-violet-100/60 p-3 rounded">
-                <div className="w-8 text-center font-bold text-violet-800">{idx + 1}</div>
-                <div className="w-12 h-12 bg-violet-200 mx-3 rounded-sm flex items-center justify-center">🖼️</div>
-                <div>
-                  <div className="font-semibold text-violet-900">{p}</div>
-                  <div className="text-xs text-violet-700">{2010 + (idx % 13)}</div>
-                </div>
+      <section className="bg-white border border-violet-300 rounded">
+        {loading ? <div className="p-4 text-sm text-violet-800">Loading games…</div> : null}
+        {!loading && error ? <div className="p-4 text-sm text-red-700">{error}</div> : null}
+        {!loading && !error && games.length === 0 ? <div className="p-4 text-sm text-violet-800">No games matched your search.</div> : null}
+        {!loading && !error && games.length > 0 ? (
+          <ul>
+            {games.map((game, idx) => (
+              <li key={game._id || `${game.name}-${idx}`} className="p-3 border-b border-violet-100 last:border-b-0 flex items-center justify-between">
+                <div className="font-semibold text-violet-900">{game.name}</div>
+                <Link to={`/threads?game=${encodeURIComponent(game.name)}`} className="text-sm text-violet-700 hover:underline">
+                  Browse threads
+                </Link>
               </li>
             ))}
-          </ol>
-          <div className="mt-2 text-sm">
-            <a className="text-violet-700 underline" href="#">See the Top 100 &gt;&gt;</a>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-xl font-bold text-violet-900 mb-2">Most Popular Games by Platform</h3>
-          <div className="border-t border-violet-300" />
-          <ol className="mt-3 space-y-1">
-            {byPlatform.map((p, idx) => (
-              <li key={p + idx} className="flex items-center bg-violet-100/60 p-3 rounded">
-                <div className="w-8 text-center font-bold text-violet-800">{idx + 1}</div>
-                <div className="w-12 h-12 bg-violet-200 mx-3 rounded-sm flex items-center justify-center">🖼️</div>
-                <div>
-                  <div className="font-semibold text-violet-900">{p}</div>
-                  <div className="text-xs text-violet-700">PC</div>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div className="mt-2 text-sm">
-            <a className="text-violet-700 underline" href="#">See the Top 100 &gt;&gt;</a>
-          </div>
-        </div>
+          </ul>
+        ) : null}
       </section>
     </div>
   )

@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Home, Info, Gamepad, Server } from 'lucide-react'
 import { getStoredUser, logoutFromServer } from '../js/auth'
 
+const THREAD_CATEGORIES = ['All', 'Recommendation', 'Question', 'Bug Report'] as const
+
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -14,6 +16,7 @@ export default function Header() {
   const [searchResults, setSearchResults] = useState<{ threads: ThreadResult[]; games: GameResult[] }>({ threads: [], games: [] })
   const [searchLoading, setSearchLoading] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
+  const [threadCategory, setThreadCategory] = useState<typeof THREAD_CATEGORIES[number]>('All')
   const navigate = useNavigate()
 
   // helper used to decide mobile vs desktop behavior
@@ -104,6 +107,9 @@ export default function Header() {
     if (!q) {
       setSearchResults({ threads: [], games: [] })
       setSearchLoading(false)
+      if (threadCategory !== 'All') {
+        setThreadCategory('All')
+      }
       return
     }
     setSearchLoading(true)
@@ -113,9 +119,13 @@ export default function Header() {
     searchTimerRef.current = window.setTimeout(async () => {
       try {
         const enc = encodeURIComponent(q)
+        const threadParams = new URLSearchParams({ q })
+        if (threadCategory !== 'All') {
+          threadParams.set('category', threadCategory)
+        }
         const [gRes, tRes] = await Promise.all([
           fetch(`/api/games?q=${enc}`),
-          fetch(`/api/threads?q=${enc}`)
+          fetch(`/api/threads?${threadParams.toString()}`)
         ])
         const games = gRes.ok ? await gRes.json() : []
         const threads = tRes.ok ? await tRes.json() : []
@@ -131,7 +141,7 @@ export default function Header() {
     return () => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
     }
-  }, [searchQuery])
+  }, [searchQuery, threadCategory])
 
   const handleLogout = async () => {
     await logoutFromServer()
@@ -198,10 +208,28 @@ export default function Header() {
                     onChange={e => {
                       const v = e.target.value
                       setSearchQuery(v)
+                      if (!v.trim()) {
+                        setThreadCategory('All')
+                      }
                     }}
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-violet-700">🔍</span>
                 </label>
+                {showSearch && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <label htmlFor="header-thread-category" className="text-xs text-violet-900 whitespace-nowrap">Thread category</label>
+                    <select
+                      id="header-thread-category"
+                      value={threadCategory}
+                      onChange={(e) => setThreadCategory(e.target.value as typeof THREAD_CATEGORIES[number])}
+                      className="px-2 py-1 border border-violet-300 bg-white rounded text-xs text-violet-900"
+                    >
+                      {THREAD_CATEGORIES.map((category) => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 {/* Search dropdown */}
                 {showSearch && (searchResults.threads.length > 0 || searchResults.games.length > 0 || searchLoading) && (
                   <div className="absolute left-0 right-0 mt-2 bg-white border rounded shadow max-h-72 overflow-auto z-40">

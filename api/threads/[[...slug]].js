@@ -83,37 +83,62 @@ function getSlugParts(req) {
 async function handleThreadsRoot(req, res) {
   if (req.method === 'GET') {
     const q = (req.query.q || '').toString();
+    const rawCategory = (req.query.category || '').toString();
+    const rawGame = (req.query.game || '').toString();
+    const rawSort = (req.query.sort || '').toString();
     const parsedLimit = Number.parseInt((req.query.limit || '').toString(), 10);
     const parsedPage = Number.parseInt((req.query.page || '').toString(), 10);
     const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 200) : 50;
     const page = Number.isFinite(parsedPage) ? Math.max(parsedPage, 1) : 1;
     const skip = (page - 1) * limit;
     const queryText = q.trim();
+    const category = normalizeCategory(rawCategory);
+    const game = rawGame.trim();
 
-    if (queryText) {
-      const filter = { $text: { $search: queryText } };
-      const threads = await Thread.find(filter)
-        .select('_id title game category tags')
-        .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean();
-      return res.status(200).json(threads.map((t) => ({
-        _id: t._id.toString(),
-        title: t.title,
-        game: t.game,
-        category: t.category,
-        tags: Array.isArray(t.tags) ? t.tags : []
-      })));
+    if (rawCategory.trim() && !category) {
+      return res.status(400).json({ error: 'Invalid category filter' });
     }
 
-    const threads = await Thread.find()
+    const allowedSort = new Set(['relevance', 'newest', 'oldest']);
+    const requestedSort = rawSort.trim().toLowerCase();
+    const sort = allowedSort.has(requestedSort) ? requestedSort : (queryText ? 'relevance' : 'newest');
+
+    const filter = {};
+    if (queryText) {
+      filter.$text = { $search: queryText };
+    }
+    if (category) {
+      filter.category = category;
+    }
+    if (game) {
+      filter.game = toCaseInsensitiveExactRegex(game);
+    }
+
+    const sortSpec = (() => {
+      if (sort === 'oldest') return { createdAt: 1 };
+      if (sort === 'newest') return { createdAt: -1 };
+      if (queryText) return { score: { $meta: 'textScore' }, createdAt: -1 };
+      return { createdAt: -1 };
+    })();
+
+    const threads = await Thread.find(filter)
       .select('_id title game platform category tags body author createdAt')
-      .sort('-createdAt')
+      .sort(sortSpec)
       .skip(skip)
       .limit(limit)
       .lean();
-    return res.status(200).json(threads);
+
+    return res.status(200).json(threads.map((t) => ({
+      _id: t._id.toString(),
+      title: t.title,
+      game: t.game,
+      platform: t.platform,
+      category: t.category,
+      tags: Array.isArray(t.tags) ? t.tags : [],
+      body: t.body,
+      author: t.author,
+      createdAt: t.createdAt
+    })));
   }
 
   if (req.method === 'POST') {
