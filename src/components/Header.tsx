@@ -1,269 +1,362 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Home, Info, Gamepad, Server } from 'lucide-react'
-import { getStoredUser, logoutFromServer } from '../js/auth'
+import React, { useState, useEffect, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Home, Info, Gamepad, Server } from "lucide-react";
+import { getStoredUser, logoutFromServer } from "../js/auth";
 
-const THREAD_CATEGORIES = ['All', 'Recommendation', 'Question', 'Bug Report'] as const
+const THREAD_CATEGORIES = [
+  "All",
+  "Recommendation",
+  "Question",
+  "Bug Report",
+] as const;
 
 export default function Header() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [displayName, setDisplayName] = useState('GUEST')
-  const [showUserMenu, setShowUserMenu] = useState(false)
-  type ThreadResult = { _id: string; title: string; game?: string }
-  type GameResult = { _id: string; name: string }
-  const [searchResults, setSearchResults] = useState<{ threads: ThreadResult[]; games: GameResult[] }>({ threads: [], games: [] })
-  const [searchLoading, setSearchLoading] = useState(false)
-  const [showSearch, setShowSearch] = useState(false)
-  const [threadCategory, setThreadCategory] = useState<typeof THREAD_CATEGORIES[number]>('All')
-  const navigate = useNavigate()
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [displayName, setDisplayName] = useState("GUEST");
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  type ThreadResult = { _id: string; title: string; game?: string };
+  type GameResult = { _id: string; name: string };
+  const [searchResults, setSearchResults] = useState<{
+    threads: ThreadResult[];
+    games: GameResult[];
+  }>({ threads: [], games: [] });
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [threadCategory, setThreadCategory] =
+    useState<(typeof THREAD_CATEGORIES)[number]>("All");
+  const navigate = useNavigate();
 
   // helper used to decide mobile vs desktop behavior
-  const isMobile = () => (typeof window !== 'undefined' ? window.innerWidth < 768 : false)
-  const isOpenRef = React.useRef(isOpen)
-  const searchTimerRef = useRef<number | null>(null)
-  const userMenuRef = useRef<HTMLDivElement | null>(null)
+  const isMobile = () =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false;
+  const isOpenRef = React.useRef(isOpen);
+  const searchTimerRef = useRef<number | null>(null);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    isOpenRef.current = isOpen
-  }, [isOpen])
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
 
   useEffect(() => {
     const readDisplayName = () => {
-      const user = getStoredUser<{ username?: string; email?: string }>()
+      const user = getStoredUser<{ username?: string; email?: string }>();
       if (!user) {
-        setDisplayName('GUEST')
-        return
+        setDisplayName("GUEST");
+        return;
       }
 
-      const username = typeof user.username === 'string' ? user.username.trim() : ''
-      const email = typeof user.email === 'string' ? user.email.trim() : ''
-      setDisplayName(username || email || 'GUEST')
-    }
+      const username =
+        typeof user.username === "string" ? user.username.trim() : "";
+      const email = typeof user.email === "string" ? user.email.trim() : "";
+      setDisplayName(username || email || "GUEST");
+    };
 
-    readDisplayName()
-    window.addEventListener('storage', readDisplayName)
-    return () => window.removeEventListener('storage', readDisplayName)
-  }, [])
+    readDisplayName();
+    window.addEventListener("storage", readDisplayName);
+    return () => window.removeEventListener("storage", readDisplayName);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => {
-      const sc = window.scrollY > 0
-      setScrolled(sc)
+      const sc = window.scrollY > 0;
+      setScrolled(sc);
       if (isOpenRef.current && isMobile()) {
-        setIsOpen(false)
+        setIsOpen(false);
       }
-      setShowUserMenu(false)
-    }
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+      setShowUserMenu(false);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
-      if (!userMenuRef.current) return
+      if (!userMenuRef.current) return;
       if (!userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false)
+        setShowUserMenu(false);
       }
-    }
+    };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setShowUserMenu(false)
+      if (event.key === "Escape") {
+        setShowUserMenu(false);
       }
-    }
+    };
 
-    document.addEventListener('mousedown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener('mousedown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [])
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
 
   // When sidebar is visible, shift the page content by adding left margin to body (desktop only)
   useEffect(() => {
-    const sidebarWidth = '14rem'
-    const shouldShift = scrolled && window.innerWidth >= 768
+    const sidebarWidth = "14rem";
+    const shouldShift = scrolled && window.innerWidth >= 768;
     if (shouldShift) {
-      const prev = document.body.style.marginLeft
-      document.body.style.transition = 'margin-left 0.25s ease'
-      document.body.style.marginLeft = sidebarWidth
+      const prev = document.body.style.marginLeft;
+      document.body.style.transition = "margin-left 0.25s ease";
+      document.body.style.marginLeft = sidebarWidth;
       return () => {
-        document.body.style.marginLeft = prev || ''
-      }
+        document.body.style.marginLeft = prev || "";
+      };
     } else {
-      document.body.style.marginLeft = ''
+      document.body.style.marginLeft = "";
     }
     return () => {
-      document.body.style.marginLeft = ''
-    }
-  }, [scrolled])
+      document.body.style.marginLeft = "";
+    };
+  }, [scrolled]);
 
   // debounced search
   useEffect(() => {
-    const q = (searchQuery || '').trim()
+    const q = (searchQuery || "").trim();
     if (!q) {
-      setSearchResults({ threads: [], games: [] })
-      setSearchLoading(false)
-      if (threadCategory !== 'All') {
-        setThreadCategory('All')
+      setSearchResults({ threads: [], games: [] });
+      setSearchLoading(false);
+      if (threadCategory !== "All") {
+        setThreadCategory("All");
       }
-      return
+      return;
     }
-    setSearchLoading(true)
+    setSearchLoading(true);
     if (searchTimerRef.current) {
-      clearTimeout(searchTimerRef.current)
+      clearTimeout(searchTimerRef.current);
     }
     searchTimerRef.current = window.setTimeout(async () => {
       try {
-        const enc = encodeURIComponent(q)
-        const threadParams = new URLSearchParams({ q })
-        if (threadCategory !== 'All') {
-          threadParams.set('category', threadCategory)
+        const enc = encodeURIComponent(q);
+        const threadParams = new URLSearchParams({ q });
+        if (threadCategory !== "All") {
+          threadParams.set("category", threadCategory);
         }
         const [gRes, tRes] = await Promise.all([
           fetch(`/api/games?q=${enc}`),
-          fetch(`/api/threads?${threadParams.toString()}`)
-        ])
-        const games = gRes.ok ? await gRes.json() : []
-        const threads = tRes.ok ? await tRes.json() : []
-        setSearchResults({ games, threads })
+          fetch(`/api/threads?${threadParams.toString()}`),
+        ]);
+        const games = gRes.ok ? await gRes.json() : [];
+        const threads = tRes.ok ? await tRes.json() : [];
+        setSearchResults({ games, threads });
       } catch (err) {
-        console.error('Search error', err)
-        setSearchResults({ games: [], threads: [] })
+        console.error("Search error", err);
+        setSearchResults({ games: [], threads: [] });
       } finally {
-        setSearchLoading(false)
+        setSearchLoading(false);
       }
-    }, 300)
+    }, 300);
 
     return () => {
-      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
-    }
-  }, [searchQuery, threadCategory])
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchQuery, threadCategory]);
 
   const handleLogout = async () => {
-    await logoutFromServer()
-    setShowUserMenu(false)
-    setDisplayName('GUEST')
-    navigate('/login', { replace: true })
-  }
+    await logoutFromServer();
+    setShowUserMenu(false);
+    setDisplayName("GUEST");
+    navigate("/login", { replace: true });
+  };
 
   return (
     <>
-      <header className={`${scrolled ? 'fixed top-0 left-0 right-0 z-50 bg-violet-300/95 shadow-md backdrop-blur-sm' : 'relative z-50 bg-violet-300'}`}>
-        <div className={`max-w-6xl mx-auto px-4 relative ${scrolled ? 'md:pl-56' : ''}`}>
+      <header
+        className={`${scrolled ? "fixed top-0 left-0 right-0 z-50 bg-violet-300/95 shadow-md backdrop-blur-sm" : "relative z-50 bg-violet-300"}`}
+      >
+        <div
+          className={`max-w-6xl mx-auto px-4 relative ${scrolled ? "md:pl-56" : ""}`}
+        >
           <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              aria-expanded={isOpen}
-              aria-label="Toggle menu"
-              className="md:hidden p-2 rounded hover:bg-violet-200"
-            >
-              <span className="sr-only">Toggle navigation</span>
-              <div className="flex flex-col gap-1">
-                <span className="block w-6 h-0.5 bg-violet-900 rounded" />
-                <span className="block w-6 h-0.5 bg-violet-900 rounded" />
-                <span className="block w-6 h-0.5 bg-violet-900 rounded" />
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                aria-expanded={isOpen}
+                aria-label="Toggle menu"
+                className="md:hidden p-2 rounded hover:bg-violet-200"
+              >
+                <span className="sr-only">Toggle navigation</span>
+                <div className="flex flex-col gap-1">
+                  <span className="block w-6 h-0.5 bg-violet-900 rounded" />
+                  <span className="block w-6 h-0.5 bg-violet-900 rounded" />
+                  <span className="block w-6 h-0.5 bg-violet-900 rounded" />
+                </div>
+              </button>
+              <Link to="/" className="text-2xl font-semibold text-violet-900">
+                QuestLog
+              </Link>
+              <div
+                className={`${scrolled || isOpen ? "hidden" : "hidden md:block"} absolute md:static left-0 right-0 top-full md:top-auto bg-white md:bg-transparent shadow-md md:shadow-none z-50`}
+              >
+                <div className="max-w-6xl mx-auto px-4">
+                  <nav className="flex md:flex-row flex-col gap-2 md:gap-6 text-sm text-violet-900 md:items-center py-3 md:py-0">
+                    <Link
+                      className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center"
+                      to="/"
+                    >
+                      <Home
+                        className="w-4 h-4 mr-2 text-violet-900"
+                        aria-hidden="true"
+                      />
+                      HOME
+                    </Link>
+                    <Link
+                      className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center"
+                      to="/about"
+                    >
+                      <Info
+                        className="w-4 h-4 mr-2 text-violet-900"
+                        aria-hidden="true"
+                      />
+                      ABOUT
+                    </Link>
+                    <Link
+                      className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center"
+                      to="/games"
+                    >
+                      <Gamepad
+                        className="w-4 h-4 mr-2 text-violet-900"
+                        aria-hidden="true"
+                      />
+                      GAMES
+                    </Link>
+                    <Link
+                      className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center"
+                      to="/platforms"
+                    >
+                      {/* <Server className="w-4 h-4 mr-2 text-violet-900" aria-hidden="true" /> */}
+                      PLATFORM
+                    </Link>
+                  </nav>
+                </div>
               </div>
-            </button>
-            <Link to="/" className="text-2xl font-semibold text-violet-900">QuestLog</Link>
-               {/* Inline nav for wide screens when not scrolled (will be hidden when scrolled) */}
-               {/* header nav: hide when scrolled (desktop) or when mobile overlay is open */}
-               {/* Inline header nav: only show on md+ and only when not scrolled and not overlay-open */}
-               <div className={`${(scrolled || isOpen) ? 'hidden' : 'hidden md:block'} absolute md:static left-0 right-0 top-full md:top-auto bg-white md:bg-transparent shadow-md md:shadow-none z-50` }>
-                 <div className="max-w-6xl mx-auto px-4">
-                   <nav className="flex md:flex-row flex-col gap-2 md:gap-6 text-sm text-violet-900 md:items-center py-3 md:py-0">
-                     <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center" to="/">
-                       <Home className="w-4 h-4 mr-2 text-violet-900" aria-hidden="true" />
-                       HOME
-                     </Link>
-                     <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center" to="#">
-                       <Info className="w-4 h-4 mr-2 text-violet-900" aria-hidden="true" />
-                       ABOUT
-                     </Link>
-                     <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center" to="/games">
-                       <Gamepad className="w-4 h-4 mr-2 text-violet-900" aria-hidden="true" />
-                       GAMES
-                     </Link>
-                     <Link className="hover:underline px-2 py-1 rounded hover:bg-violet-50 flex items-center" to="/platforms">
-                       {/* <Server className="w-4 h-4 mr-2 text-violet-900" aria-hidden="true" /> */}
-                       PLATFORM
-                     </Link>
-                   </nav>
-                 </div>
-               </div>
-          </div>
+            </div>
 
-            <div className={`flex-1 px-4 transition-all ${scrolled ? 'flex justify-center' : ''}`}>
-              <div className={`mx-auto w-full relative ${scrolled ? 'max-w-2xl' : 'max-w-md'}`}>
+            <div
+              className={`flex-1 px-4 transition-all ${scrolled ? "flex justify-center" : ""}`}
+            >
+              <div
+                className={`mx-auto w-full relative ${scrolled ? "max-w-2xl" : "max-w-md"}`}
+              >
                 <label className="relative block">
                   <input
                     className="w-full rounded-xl border-2 border-violet-400/80 bg-white py-2.5 pl-4 pr-10 text-sm text-violet-900 placeholder-violet-500 shadow-sm transition-all duration-150 focus:border-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300"
                     placeholder="Search threads or games"
                     value={searchQuery}
                     onFocus={() => setShowSearch(true)}
-                    onChange={e => {
-                      const v = e.target.value
-                      setSearchQuery(v)
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setSearchQuery(v);
                       if (!v.trim()) {
-                        setThreadCategory('All')
+                        setThreadCategory("All");
                       }
                     }}
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-violet-700">🔍</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-violet-700">
+                    🔍
+                  </span>
                 </label>
                 {showSearch && (
                   <div className="absolute left-0 right-0 top-full mt-2 flex items-center gap-2 rounded-lg bg-white/95 border border-violet-200 px-3 py-2 shadow-md z-40">
-                    <label htmlFor="header-thread-category" className="text-[11px] font-semibold tracking-wide uppercase text-violet-700 whitespace-nowrap">Thread category</label>
+                    <label
+                      htmlFor="header-thread-category"
+                      className="text-[11px] font-semibold tracking-wide uppercase text-violet-700 whitespace-nowrap"
+                    >
+                      Thread category
+                    </label>
                     <select
                       id="header-thread-category"
                       value={threadCategory}
-                      onChange={(e) => setThreadCategory(e.target.value as typeof THREAD_CATEGORIES[number])}
+                      onChange={(e) =>
+                        setThreadCategory(
+                          e.target.value as (typeof THREAD_CATEGORIES)[number],
+                        )
+                      }
                       className="px-2 py-1.5 border border-violet-300 bg-white rounded-md text-xs text-violet-900 focus:border-violet-600 focus:outline-none"
                     >
                       {THREAD_CATEGORIES.map((category) => (
-                        <option key={category} value={category}>{category}</option>
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
                       ))}
                     </select>
                   </div>
                 )}
-                {showSearch && (searchResults.threads.length > 0 || searchResults.games.length > 0 || searchLoading) && (
-                  <div className="absolute left-0 right-0 top-full mt-14 bg-white border border-violet-200 rounded-xl shadow-xl shadow-violet-900/10 max-h-80 overflow-auto z-40">
-                    <div className="px-3 py-2 text-xs font-semibold tracking-wide uppercase text-violet-700 bg-violet-50 border-b border-violet-100">{searchLoading ? 'Searching…' : 'Results'}</div>
-                    {searchResults.threads.length > 0 && (
-                      <div className="border-t border-violet-100 first:border-t-0">
-                        <div className="px-3 py-2 text-[11px] text-violet-700 font-semibold uppercase tracking-wide">Threads</div>
-                        {searchResults.threads.map(t => (
-                          <button key={t._id} onClick={() => { setShowSearch(false); setSearchQuery(''); setIsOpen(false); navigate(`/threads/inside/${t._id}`) }} className="w-full text-left px-3 py-2.5 hover:bg-violet-50/70 border-t border-violet-100 first:border-t-0 transition-colors">
-                            <div className="font-semibold text-violet-900 leading-tight">{t.title}</div>
-                            {t.game ? <div className="text-xs text-violet-700 mt-0.5">{t.game}</div> : null}
-                          </button>
-                        ))}
+                {showSearch &&
+                  (searchResults.threads.length > 0 ||
+                    searchResults.games.length > 0 ||
+                    searchLoading) && (
+                    <div className="absolute left-0 right-0 top-full mt-14 bg-white border border-violet-200 rounded-xl shadow-xl shadow-violet-900/10 max-h-80 overflow-auto z-40">
+                      <div className="px-3 py-2 text-xs font-semibold tracking-wide uppercase text-violet-700 bg-violet-50 border-b border-violet-100">
+                        {searchLoading ? "Searching…" : "Results"}
                       </div>
-                    )}
-                    {searchResults.games.length > 0 && (
-                      <div className="border-t border-violet-100">
-                        <div className="px-3 py-2 text-[11px] text-violet-700 font-semibold uppercase tracking-wide">Games</div>
-                        {searchResults.games.map(g => (
-                          <button key={g._id} onClick={() => { setShowSearch(false); setSearchQuery(''); setIsOpen(false); navigate(`/games?q=${encodeURIComponent(g.name)}`) }} className="w-full text-left px-3 py-2.5 hover:bg-violet-50/70 border-t border-violet-100 first:border-t-0 transition-colors">
-                            <div className="font-semibold text-violet-900 leading-tight">{g.name}</div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                      {searchResults.threads.length > 0 && (
+                        <div className="border-t border-violet-100 first:border-t-0">
+                          <div className="px-3 py-2 text-[11px] text-violet-700 font-semibold uppercase tracking-wide">
+                            Threads
+                          </div>
+                          {searchResults.threads.map((t) => (
+                            <button
+                              key={t._id}
+                              onClick={() => {
+                                setShowSearch(false);
+                                setSearchQuery("");
+                                setIsOpen(false);
+                                navigate(`/threads/inside/${t._id}`);
+                              }}
+                              className="w-full text-left px-3 py-2.5 hover:bg-violet-50/70 border-t border-violet-100 first:border-t-0 transition-colors"
+                            >
+                              <div className="font-semibold text-violet-900 leading-tight">
+                                {t.title}
+                              </div>
+                              {t.game ? (
+                                <div className="text-xs text-violet-700 mt-0.5">
+                                  {t.game}
+                                </div>
+                              ) : null}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {searchResults.games.length > 0 && (
+                        <div className="border-t border-violet-100">
+                          <div className="px-3 py-2 text-[11px] text-violet-700 font-semibold uppercase tracking-wide">
+                            Games
+                          </div>
+                          {searchResults.games.map((g) => (
+                            <button
+                              key={g._id}
+                              onClick={() => {
+                                setShowSearch(false);
+                                setSearchQuery("");
+                                setIsOpen(false);
+                                navigate(
+                                  `/games?q=${encodeURIComponent(g.name)}`,
+                                );
+                              }}
+                              className="w-full text-left px-3 py-2.5 hover:bg-violet-50/70 border-t border-violet-100 first:border-t-0 transition-colors"
+                            >
+                              <div className="font-semibold text-violet-900 leading-tight">
+                                {g.name}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
               </div>
             </div>
 
             <div className="flex items-center gap-4 relative" ref={userMenuRef}>
-              <div className="text-xs text-violet-900 hidden sm:block">✉️ (1) | 🔔 | {displayName}</div>
+              <div className="text-xs text-violet-900 hidden sm:block">
+                ✉️ (1) | 🔔 | {displayName}
+              </div>
               <button
                 type="button"
-                onClick={() => setShowUserMenu(v => !v)}
+                onClick={() => setShowUserMenu((v) => !v)}
                 aria-expanded={showUserMenu}
                 aria-haspopup="menu"
                 aria-label="Open account menu"
@@ -272,7 +365,11 @@ export default function Header() {
                 👤
               </button>
               {showUserMenu && (
-                <div className="absolute right-0 top-11 w-40 bg-white border border-violet-200 rounded-md shadow-md z-50 py-1" role="menu" aria-label="Account menu">
+                <div
+                  className="absolute right-0 top-11 w-40 bg-white border border-violet-200 rounded-md shadow-md z-50 py-1"
+                  role="menu"
+                  aria-label="Account menu"
+                >
                   <Link
                     to="/profile"
                     onClick={() => setShowUserMenu(false)}
@@ -296,40 +393,79 @@ export default function Header() {
         </div>
       </header>
 
-        <aside className={`hidden md:block fixed left-0 top-0 h-full w-56 bg-white shadow-lg z-30 transform transition-transform duration-200 ease-out ${scrolled ? 'translate-x-0' : '-translate-x-full'}`} aria-hidden={!scrolled}>
+      <aside
+        className={`hidden md:block fixed left-0 top-0 h-full w-56 bg-white shadow-lg z-30 transform transition-transform duration-200 ease-out ${scrolled ? "translate-x-0" : "-translate-x-full"}`}
+        aria-hidden={!scrolled}
+      >
         <div className="p-6 pt-20">
           <nav className="flex flex-col gap-4 text-violet-900">
-            <Link className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="/">
+            <Link
+              className="flex items-center px-2 py-2 rounded hover:bg-violet-50"
+              to="/"
+            >
               <Home className="w-5 h-5 mr-3" /> HOME
             </Link>
-            <Link className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="#">
+            <Link
+              className="flex items-center px-2 py-2 rounded hover:bg-violet-50"
+              to="/about"
+            >
               <Info className="w-5 h-5 mr-3" /> ABOUT
             </Link>
-            <Link className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="/games">
+            <Link
+              className="flex items-center px-2 py-2 rounded hover:bg-violet-50"
+              to="/games"
+            >
               <Gamepad className="w-5 h-5 mr-3" /> GAMES
             </Link>
-            <Link className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="/platforms">
+            <Link
+              className="flex items-center px-2 py-2 rounded hover:bg-violet-50"
+              to="/platforms"
+            >
               <Server className="w-5 h-5 mr-3" /> PLATFORM
             </Link>
           </nav>
         </div>
       </aside>
 
-      <div className={`md:hidden fixed inset-0 z-30 ${isOpen ? '' : 'pointer-events-none'}`} aria-hidden={!isOpen}>
-        <div className={`absolute inset-0 bg-black transition-opacity duration-200 ${isOpen ? 'opacity-40' : 'opacity-0'}`} onClick={() => setIsOpen(false)} />
-        <div className={`absolute left-0 top-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-200 ease-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div
+        className={`md:hidden fixed inset-0 z-30 ${isOpen ? "" : "pointer-events-none"}`}
+        aria-hidden={!isOpen}
+      >
+        <div
+          className={`absolute inset-0 bg-black transition-opacity duration-200 ${isOpen ? "opacity-40" : "opacity-0"}`}
+          onClick={() => setIsOpen(false)}
+        />
+        <div
+          className={`absolute left-0 top-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-200 ease-out ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+        >
           <div className="p-6 pt-20">
             <nav className="flex flex-col gap-4 text-violet-900">
-              <Link onClick={() => setIsOpen(false)} className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="/">
+              <Link
+                onClick={() => setIsOpen(false)}
+                className="flex items-center px-2 py-2 rounded hover:bg-violet-50"
+                to="/"
+              >
                 <Home className="w-5 h-5 mr-3" /> HOME
               </Link>
-              <Link onClick={() => setIsOpen(false)} className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="#">
+              <Link
+                onClick={() => setIsOpen(false)}
+                className="flex items-center px-2 py-2 rounded hover:bg-violet-50"
+                to="/about"
+              >
                 <Info className="w-5 h-5 mr-3" /> ABOUT
               </Link>
-              <Link onClick={() => setIsOpen(false)} className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="/games">
+              <Link
+                onClick={() => setIsOpen(false)}
+                className="flex items-center px-2 py-2 rounded hover:bg-violet-50"
+                to="/games"
+              >
                 <Gamepad className="w-5 h-5 mr-3" /> GAMES
               </Link>
-              <Link onClick={() => setIsOpen(false)} className="flex items-center px-2 py-2 rounded hover:bg-violet-50" to="/platforms">
+              <Link
+                onClick={() => setIsOpen(false)}
+                className="flex items-center px-2 py-2 rounded hover:bg-violet-50"
+                to="/platforms"
+              >
                 <Server className="w-5 h-5 mr-3" /> PLATFORM
               </Link>
             </nav>
@@ -337,5 +473,5 @@ export default function Header() {
         </div>
       </div>
     </>
-  )
+  );
 }
