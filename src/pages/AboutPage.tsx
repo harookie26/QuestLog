@@ -496,9 +496,9 @@ export default function AboutPage() {
             About This Project Stack
           </h1>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-violet-800 sm:text-base">
-            This page documents the npm packages installed in the root
-            application and explains their practical role in the current build.
-            It is organized as an alternating timeline so you can scan the stack
+            This page documents the npm packages installed in the project and
+            explains their practical role in the current build. It is organized
+            as an alternating timeline so that viewers can scan the stack
             category by category.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
