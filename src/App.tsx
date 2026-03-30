@@ -16,7 +16,7 @@ import AboutPage from "./pages/AboutPage";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { fetchSessionUser, getStoredUser } from "./js/auth";
+import { AUTH_UPDATED_EVENT, fetchSessionUser, getStoredUser } from "./js/auth";
 
 export default function App() {
   const location = useLocation();
@@ -41,6 +41,20 @@ export default function App() {
 
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const syncFromStorage = () => {
+      setCurrentUser(getStoredUser<any>());
+    };
+
+    window.addEventListener(AUTH_UPDATED_EVENT, syncFromStorage);
+    window.addEventListener("storage", syncFromStorage);
+
+    return () => {
+      window.removeEventListener(AUTH_UPDATED_EVENT, syncFromStorage);
+      window.removeEventListener("storage", syncFromStorage);
     };
   }, []);
 
