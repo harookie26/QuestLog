@@ -1,199 +1,244 @@
-# Local Development
+# QuestLog
 
-## Frontend Only (No Backend)
+QuestLog is a full-stack discussion platform for games, platforms, and community threads.
 
-```bash
-npm install
-npm run build
-npm run dev
-```
+Production is deployed as a single Vercel project:
+[https://questlog-test.vercel.app/](https://questlog-test.vercel.app/)
 
-**Note:** `/server` is deprecated. Local builds run without database access for frontend-only testing.
+## Overview
 
-## Full Stack Local Setup
+The repository contains:
 
-To run with a working backend and database in development:
+- A Vite + React + TypeScript frontend in `/src`
+- Serverless API routes in `/api` (deployed on Vercel)
+- Shared backend utilities and models in `/lib`
+- A legacy Express server in `/server` for local compatibility only
+
+## Architecture
+
+### Production Architecture
+
+- Frontend is built by Vite and served by Vercel
+- API is served by Vercel Serverless Functions under `/api`
+- Data is stored in MongoDB via `MONGODB_URI`
+
+### API Routing Flow
+
+1. Client requests `/api/...`
+2. `vercel.json` rewrites to `/api/dispatch`
+3. `api/dispatch.js` resolves the target route module
+4. Route handlers execute business logic and DB operations through `/lib`
+
+### Local Architecture
+
+- Frontend dev server runs on port `5173` (Vite)
+- Vite proxies `/api/*` to `http://localhost:3000`
+- Optional legacy backend (`/server`) can be run locally
+
+## Local Development
 
 ### Prerequisites
 
 - Node.js 18+
-- MongoDB (local or Atlas connection string)
+- npm
+- MongoDB connection string (for full-stack local mode)
 
-### Backend Setup
+### Option A: Frontend-Only (Fastest)
 
-1. Navigate to the server directory:
+Use this when working only on UI behavior.
+
+```bash
+npm install
+npm run dev
+```
+
+Optional build verification:
+
+```bash
+npm run build
+npm run preview
+```
+
+Notes:
+
+- In frontend-only mode, API calls to `/api/*` require a backend target
+- If no backend is running on port `3000`, API requests from the UI will fail
+
+### Option B: Full-Stack Local (Legacy Compatibility Path)
+
+The `/server` folder is legacy and should not be used for production deployment.
+It remains available for local compatibility/testing.
+
+1. Install backend dependencies:
 
 ```bash
 cd server
 npm install
 ```
 
-2. Create a `.env` file in the `/server` directory with:
+2. Create `server/.env`:
 
-```
+```env
 MONGODB_URI=your_mongodb_connection_string
 NODE_ENV=development
+PORT=3000
 ```
 
-3. (Optional) Seed the database:
+3. Optional: seed local data:
 
 ```bash
 npm run seed
 ```
 
-4. Start the backend server:
+4. Start legacy backend:
 
 ```bash
 npm run dev
 ```
 
-### Frontend Setup
-
-In a new terminal, from the root directory:
+5. In a second terminal (repository root), run frontend:
 
 ```bash
 npm install
 npm run dev
 ```
 
-The frontend (Vite on port 5173) proxies `/api/*` calls to the local backend on port 3000.
+## Scripts
 
-**Important:** `/server` is deprecated for production deployment. Keep it only for local development and migration support.
+### Root (`package.json`)
 
-# Deployment
+- `npm run dev` - Start Vite dev server
+- `npm run build` - Build frontend for production
+- `npm run preview` - Preview built frontend locally
 
-## Full-Stack Deployment (Vercel)
+### Legacy Server (`server/package.json`)
 
-Production uses a single Vercel project for both frontend and backend.
+- `npm run dev` - Start legacy Express server with nodemon
+- `npm run start` - Start legacy Express server
+- `npm run seed` - Seed sample data
 
-Current deployment: [QuestLog](https://questlog-test.vercel.app/)
+## Environment Variables
 
-### Production Architecture
+| Variable                               | Required          | Context                           | Default                                          | Purpose                                                         |
+| -------------------------------------- | ----------------- | --------------------------------- | ------------------------------------------------ | --------------------------------------------------------------- |
+| `MONGODB_URI`                          | Yes               | Serverless API + legacy `/server` | None                                             | MongoDB connection string                                       |
+| `NODE_ENV`                             | Yes               | Local + production                | Runtime-defined                                  | Controls secure-cookie behavior (`production` enables `Secure`) |
+| `JWT_SECRET`                           | Yes (production)  | Serverless API + auth             | Falls back to `SESSION_SECRET`; then dev default | JWT signing secret for session cookies                          |
+| `SESSION_SECRET`                       | Optional fallback | Serverless API + auth             | None                                             | Backward-compatible fallback secret                             |
+| `SESSION_COOKIE_NAME`                  | No                | Serverless API + auth             | `questlog_session`                               | Session cookie name                                             |
+| `SESSION_TOKEN_TTL_SECONDS`            | No                | Serverless API + auth             | `28800` (8h)                                     | Non-persistent session TTL                                      |
+| `SESSION_PERSISTENT_TOKEN_TTL_SECONDS` | No                | Serverless API + auth             | `2592000` (30d)                                  | Keep-signed-in session TTL                                      |
+| `CORS_ORIGIN`                          | No                | Users auth action routes          | Request origin or `*`                            | CORS origin override                                            |
+| `PORT`                                 | No                | Legacy `/server` only             | `5000`                                           | Express listening port (set to `3000` to match Vite proxy)      |
 
-- Frontend: Vite/React static app served by Vercel
-- Backend API: Vercel Serverless Functions in `/api`
-- Database: MongoDB via `MONGODB_URI`
+### Recommended Production Baseline
 
-You do not need a separate backend host for this project.
+- Set a strong `JWT_SECRET`
+- Set `MONGODB_URI` to production database
+- Keep `NODE_ENV=production`
 
-### API Routing Flow
+## Authentication and Sessions
 
-1. Client calls `/api/...`
-2. `vercel.json` rewrites `/api/:path*` to `/api/dispatch`
-3. `api/dispatch.js` resolves and forwards to route handlers under `/api/*`
-4. Route handlers read/write MongoDB using shared backend utilities
-
-### Deploy to Production
-
-1. Push changes to the `main` branch on GitHub
-2. Vercel automatically runs the frontend build and deploys API functions from `/api`
-3. Set production environment variables in the Vercel dashboard
-
-### First-Time Vercel Setup
-
-1. Import the GitHub repository into Vercel
-2. Add production environment variables (see below)
-3. Deploy
-
-### Environment Variables Reference
-
-Use these variables in production (Vercel) and local development as applicable.
-
-| Variable                               | Required               | Description                                                            |
-| -------------------------------------- | ---------------------- | ---------------------------------------------------------------------- |
-| `MONGODB_URI`                          | Yes                    | MongoDB connection string                                              |
-| `NODE_ENV`                             | Yes                    | `development` or `production`                                          |
-| `JWT_SECRET` (or `SESSION_SECRET`)     | Yes (production)       | Secret used to sign/verify session JWT cookies                         |
-| `SESSION_COOKIE_NAME`                  | No                     | Cookie name for auth session (default: `questlog_session`)             |
-| `SESSION_TOKEN_TTL_SECONDS`            | No                     | Session token TTL for non-persistent login (default: 8 hours)          |
-| `SESSION_PERSISTENT_TOKEN_TTL_SECONDS` | No                     | Session token TTL for keep-signed-in login (default: 30 days)          |
-| `PORT`                                 | No (local server only) | Express local server port (default: `5000`, set `3000` for Vite proxy) |
-
-### Environment by Context
-
-- Local full stack (`/server/.env`): `MONGODB_URI`, `NODE_ENV=development`, `PORT=3000`
-- Vercel production: `MONGODB_URI`, `NODE_ENV=production`, `JWT_SECRET` (required)
-
-### Session Security Notes
-
-- Do not deploy with the development fallback secret in `lib/auth/session.js`.
-- In production, set a strong `JWT_SECRET` (or `SESSION_SECRET`) in your hosting environment.
-- Auth uses an `HttpOnly` cookie, so the browser cannot read token contents from JavaScript.
-
-## Authentication flow
-
-This project now uses JWT-based session cookies for authentication.
-
-### Auth Endpoints
-
-- `POST /api/users/login`
-  - Validates credentials.
-  - Sets an `HttpOnly` session cookie.
-  - Accepts `keepSignedIn` in the request body to choose persistent vs session cookie behavior.
-- `GET /api/users/me`
-  - Returns the authenticated user from the session cookie.
-  - Returns `401` if not authenticated.
-- `POST /api/users/logout`
-  - Clears the session cookie.
-- `POST /api/users/signup`
-  - Creates a new account.
-- `POST /api/users/request-password-reset`
-  - Starts password reset flow and returns a reset token for the reset page flow.
-- `POST /api/users/reset-password`
-  - Completes password reset with the issued reset token.
+QuestLog uses signed JWT session cookies.
 
 ### Session Behavior
 
-- If `keepSignedIn` is `false`, login creates a session cookie (ends when browser session ends).
-- If `keepSignedIn` is `true`, login creates a persistent cookie using `SESSION_PERSISTENT_TOKEN_TTL_SECONDS`.
-- Frontend restores auth state via `GET /api/users/me` during app load.
+- Cookie is `HttpOnly` and `SameSite=Lax`
+- Cookie is `Secure` only when `NODE_ENV=production`
+- `keepSignedIn=true` issues a persistent cookie
+- `keepSignedIn=false` issues a non-persistent session cookie
 
-### Authorization Model
+### Core Auth Endpoints
 
-- Protected write operations now derive identity from the verified session cookie.
-- API routes no longer trust client-supplied `currentUser`/`author` values for authorization decisions.
+- `POST /api/users/login`
+- `GET /api/users/me`
+- `POST /api/users/logout`
+- `POST /api/users/signup`
+- `POST /api/users/request-password-reset`
+- `POST /api/users/reset-password`
 
-# Project Structure
+Password reset sessions currently use a short-lived token window (`10` minutes).
 
-## Frontend (`/src`)
+## API Summary
 
-- React + TypeScript application using Vite
-- Pages: Login, SignUp, Games, Platforms, Threads discussion
-- Components: Header, Footer, authentication handlers
-- Auth flows: direct signup, password reset
+This section is intentionally high-level. For implementation details, inspect route handlers in `/api`.
 
-## API Routes (`/api`)
+### Users
 
-- `/users` - Authentication (signup, login, password reset)
-- `/games` - Game listing and management
-- `/platforms` - Gaming platforms
-- `/tags` - Thread tags and taxonomy
-- `/threads` - Discussion threads and messaging
+- `POST /api/users/login|signup|request-password-reset|reset-password|logout`
+- `GET /api/users/me`
+- `GET|PUT|DELETE /api/users/profile`
+- `POST /api/users/interaction`
 
-## Database Models (`/lib/models`)
+### Threads and Messages
 
-- User.js - User accounts and authentication
-- Thread.js - Discussion threads
-- Message.js - Thread messages
-- Game.js - Game information
-- Platform.js - Platform information
-- PendingPasswordReset.js - Password reset tokens
+- `GET|POST /api/threads`
+- `GET|PUT|DELETE /api/threads/:id`
+- `GET|POST|PUT|DELETE /api/threads/:id/messages`
 
-# Troubleshooting
+### Catalog Data
 
-## Backend Won't Connect
+- `GET|POST /api/games`
+- `GET /api/platforms`
+- `GET|POST /api/tags`
 
-- Verify `MONGODB_URI` is correct and accessible
-- Check that your IP is whitelisted in MongoDB Atlas (if using cloud)
+## Authorization Model (Current Behavior)
 
-## Frontend Can't Reach Backend (Local)
+- Creating threads/messages requires authentication
+- Editing a thread requires thread owner identity
+- Deleting a thread requires `Administrator`
+- Editing a message requires message owner identity
+- Deleting a message allows owner, `Moderator`, or `Administrator`
+- Profile update/delete requires self or admin permissions
 
-- Verify backend is running on `http://localhost:3000`
-- Verify frontend is running with Vite on port `5173`
-- Verify `vite.config.ts` proxy for `/api` points to `http://localhost:3000`
+## Security Considerations
 
-## Frontend/API Issues in Production
+1. `JWT_SECRET` must be set in production.
+2. `lib/auth/session.js` includes a development fallback secret (`dev-only-insecure-secret-change-me`) when no secret is configured. This is unsafe for production.
+3. Cookies are `HttpOnly`, which protects against JavaScript token reads, but CSRF strategy should still be considered for state-changing routes.
+4. Apply standard production controls at platform level (rate limits, monitoring, log review, and abuse detection).
 
-- Verify Vercel environment variables are set (`MONGODB_URI`, `JWT_SECRET`, `NODE_ENV`)
-- Verify latest deploy includes `vercel.json` rewrite from `/api/:path*` to `/api/dispatch`
-- Check Vercel function logs for route-handler errors
+## Deployment (Vercel)
+
+### First-Time Setup
+
+1. Import this repository into Vercel
+2. Configure required environment variables (`MONGODB_URI`, `JWT_SECRET`, `NODE_ENV`)
+3. Deploy
+
+### Ongoing Deployment
+
+1. Push to `main`
+2. Vercel builds frontend and deploys API functions from `/api`
+3. Verify runtime behavior in Vercel logs
+
+## Repository Structure
+
+```text
+src/                  Frontend app (React + TypeScript)
+api/                  Vercel serverless route handlers
+lib/                  Shared DB/auth/model code used by API handlers
+server/               Legacy Express backend for local compatibility only
+```
+
+## Troubleshooting
+
+### MongoDB Connection Errors
+
+- Confirm `MONGODB_URI` is present and valid
+- Confirm Atlas/network access rules allow your environment
+- Verify the function/server process can reach MongoDB
+
+### Frontend Cannot Reach API Locally
+
+- Confirm frontend runs on `http://localhost:5173`
+- Confirm backend target is running on `http://localhost:3000`
+- Confirm `vite.config.ts` proxy points to `http://localhost:3000`
+- If using legacy server defaults (`5000`), set `PORT=3000` in `server/.env`
+
+### Auth Issues in Production
+
+- Confirm `JWT_SECRET` is set
+- Confirm `NODE_ENV=production`
+- Confirm cookies are not blocked by domain/protocol mismatch
+- Inspect Vercel function logs for route-level failures
